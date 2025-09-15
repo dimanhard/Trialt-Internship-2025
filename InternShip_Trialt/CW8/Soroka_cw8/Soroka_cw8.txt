@@ -1,0 +1,223 @@
+ods noproctitle;
+
+/* start macro variables **************************************************************************************************************/
+%let id = u64271711;
+%let sdn = Soroka;
+/* end macro variables **************************************************************************************************************/
+
+/* start macro programs *******************************************************************************************************/
+%macro crt_log(mytab, var_arr, out_data);
+ods exclude all;
+proc logistic data=&mytab.;
+   model survived(event="1") = &var_arr;
+   ods output ParameterEstimates = &out_data.;
+run;
+%mend;
+/* end macro programs *******************************************************************************************************/
+
+/* start creating libref **************************************************************************************************************/
+libname &sdn "/home/&id./InternShip/&sdn._cw8";
+/* end creating libref **************************************************************************************************************/
+
+/* start Import *******************************************************************************************************/
+option validvarname=v7;
+proc import datafile="/home/u64271711/InternShip/Soroka_cw7/titanic.csv"
+	dbms=csv replace out=titanic;
+		guessingrows=max;
+run;
+/* end Import *******************************************************************************************************/
+
+/* start editing data *******************************************************************************************************/
+data Titanic1 Titanic2;
+	set titanic;
+	if gender ^= '' then do;
+		if gender = "female" then sex = 1;
+		else if gender = "male" then sex = 2;
+	end;
+	call streaminit(2024);
+	if rand("Uniform") < 0.15 then fare = .;
+	call streaminit(2025);
+	if rand("Uniform") < 0.2 then class = .;
+	call streaminit(2026);
+	if rand("Uniform") < 0.25 then sex = .;
+	if mod(_n_, 2) then output Titanic1;
+	else output Titanic2;
+run;
+/* end editing data *******************************************************************************************************/
+
+/* start creating data sets *******************************************************************************************************/
+%crt_log(Titanic1, class sex age fare, out1111);
+%crt_log(Titanic1, class sex age, out1110);
+%crt_log(Titanic1, class sex fare, out1101);
+%crt_log(Titanic1, class age fare, out1011);
+%crt_log(Titanic1, sex age fare, out0111);
+%crt_log(Titanic1, class sex, out1100);
+%crt_log(Titanic1, class age, out1010);
+%crt_log(Titanic1, sex age, out0110);
+%crt_log(Titanic1, class fare, out1001);
+%crt_log(Titanic1, sex fare, out0101);
+%crt_log(Titanic1, age fare, out0011);
+%crt_log(Titanic1, class, out1000);
+%crt_log(Titanic1, sex, out0100);
+%crt_log(Titanic1, age, out0010);
+%crt_log(Titanic1, fare, out0001);
+/* end creating data sets *******************************************************************************************************/
+
+/* start creating function *******************************************************************************************************/
+option CMPLIB=_null_;
+proc fcmp outlib=work.funcs.logit;	
+	function p_survive(class, sex, age, fare);
+	/* out1111 */
+	if not missing(class) and not missing(sex) and not missing(age) and not missing(fare) then do;
+		Intercept = 7.800;
+		class_Est = -1.330;
+		sex_Est = -2.720;
+		age_Est = -0.031;
+		fare_Est = -0.003;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + age_Est*age + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out1110 */
+	else if not missing(class) and not missing(sex) and not missing(age) then do;
+		Intercept = 7.132;
+		class_Est = -1.188;
+	    sex_Est = -2.506;
+		age_Est = -0.031;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + age_Est*age)));
+		return(prob);
+	end;
+	/* out1101 */
+	else if not missing(class) and not missing(sex) and not missing(fare) then do;
+		Intercept = 6.162;
+		class_Est = -1.032;
+		sex_Est = -2.676;
+		fare_Est = -0.003;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out1011 */
+	else if not missing(class) and not missing(age) and not missing(fare) then do;
+		Intercept = 2.835;
+		class_Est = -1.013;
+		age_Est = -0.037;
+		fare_Est = 0.004;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + age_Est*age + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out0111 */
+	else if not missing(sex) and not missing(age) and not missing(fare) then do;
+		Intercept = 3.671;
+		sex_Est = -2.573;
+		age_Est = -0.007;
+		fare_Est = 0.006;
+		prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + age_Est*age + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out1100 */
+	else if not missing(class) and not missing(sex) then do;
+		Intercept = 5.439;
+		class_Est = -0.869;
+		sex_Est = -2.444;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex)));
+		return(prob);
+	end;
+	/* out1010 */
+	else if not missing(class) and not missing(age) then do;
+		Intercept = 3.144;
+		class_Est = -1.122;
+		age_Est = -0.034;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + age_Est*age)));
+		return(prob);
+	end;
+	/* out0110 */
+	else if not missing(sex) and not missing(age) then do;
+		Intercept = 3.649;
+		sex_Est = -2.499;
+		age_Est = -0.002;
+		prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + age_Est*age)));
+		return(prob);
+	end;
+	/* out1001 */
+	else if not missing(class) and not missing(fare) then do;
+		Intercept = 1.057;
+		class_Est = -0.727;
+		fare_Est = 0.003;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out0101 */
+	else if not missing(sex) and not missing(fare) then do;
+		Intercept = 3.069;
+		sex_Est = -2.420;
+		fare_Est = 0.006;
+		prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out0011 */
+	else if not missing(age) and not missing(fare) then do;
+		Intercept = -0.205;
+		age_Est = -0.018;
+		fare_Est = 0.010;
+		prob = 1 / (1 + exp(-(Intercept + age_Est*age + fare_Est*fare)));
+		return(prob);
+	end;
+	/* out1000 */
+	else if not missing(class) then do;
+		Intercept = 1.406;
+		class_Est = -0.824;
+		prob = 1 / (1 + exp(-(Intercept + class_Est*class)));
+		return(prob);
+	end;
+	/* out0100 */
+		else if not missing(sex) then do;
+		Intercept = 3.258;
+		sex_Est = -2.371;
+		prob = 1 / (1 + exp(-(Intercept + sex_Est*sex)));
+		return(prob);
+	end;
+	/* out0010 */
+	else if not missing(age) then do;
+		Intercept = -0.150;
+		age_Est = -0.007;
+		prob = 1 / (1 + exp(-(Intercept + age_Est*age)));
+		return(prob);
+	end;
+	/* out0001 */
+	else if not missing(fare) then do;
+		Intercept = -0.827;
+		fare_Est = 0.010;
+		prob = 1 / (1 + exp(-(Intercept + fare_Est*fare)));
+		return(prob);
+	end;
+	else do;
+		return(.);
+	end;
+	endsub;
+run;
+/* end creating function *******************************************************************************************************/
+
+/* start creating P_Titanic *******************************************************************************************************/
+option cmplib=work.funcs;
+data &sdn..P_Titanic;
+	set Titanic2;
+	if p_survive(class, sex, age, fare) = . then p_survive = .;
+	else if p_survive(class, sex, age, fare) >= 0.5 then p_survive = 1;
+	else p_survive = 0;
+run;
+/* start creating P_Titanic *******************************************************************************************************/
+
+/* start Analyze *******************************************************************************************************/
+ods exclude none;
+proc freq data=&sdn..P_Titanic;
+	table p_survive*survived;
+run;
+/* end Analyze *******************************************************************************************************/
+
+/*
+	Accuracy: 76% - The percentage is quite high, compared to the 
+previous attempt of the logistic model, the chance of a correct 
+answer increased by 0.07 - this is a good increase in accuracy, but 
+it cannot be said that this method justifies its use.
+*/
+
+ods proctitle;

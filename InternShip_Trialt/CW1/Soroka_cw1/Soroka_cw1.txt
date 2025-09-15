@@ -1,0 +1,101 @@
+/* Створення бібліотеки */
+libname Soroka "/home/u64271711/Soroka";
+
+/* Вимкнення процедурних заголовків */
+ods noproctitle;
+
+/* Застосування Data Step для завантаження датасета типу .csv в sas */
+data Soroka.Titanic;
+infile "/home/u64271711/Soroka/titanic.csv" dsd lrecl=10000 firstobs=2;
+input Name : $51. Age Gender $ Class  Fare Survived ;
+run;
+
+/* Зупиняємо вивід */
+ods select none;
+
+/* Вибираємо вивід для створення meta датасету */
+ods output Position=Soroka.meta;
+
+/* Створюємо meta */
+proc contents data=Soroka.Titanic order=varnum;
+run;
+
+ods output close;
+
+/* Відновлюємо вивід */
+ods select default;
+
+/* Прибираємо непотрібні стовпці з Soroka.meta */
+data Soroka.meta;
+set Soroka.meta;
+keep Variable Type Len;
+run;
+
+/* Створення звіту */
+data Soroka.REPORT;
+set Soroka.Titanic;
+
+/* Вибір потрібних рядків і колонок */
+where (Class=1 and Survived=1) or Fare>=50;
+drop Survived Fare;
+
+/* Створення стовбця AgeGroup */
+length AgeGroup $ 7;
+if Age = . then AgeGroup = "Unknown";
+else if Age <= 12 then AgeGroup = "Child";
+else if  Age >= 19 then AgeGroup = "Adult";
+else AgeGroup = "Teen";
+
+/* Створення стовбця Sex */
+length Sex $ 30;
+Sex = upcase(substr(Gender, 1, 1));
+
+/* Створення стовбця Title */
+length Title $ 6;
+if find(Name, 'Master') then Title = "Master";
+else if find(Name, 'Mrs') then Title = "Mrs";
+else if find(Name, 'Miss') then Title = "Miss";
+else Title = "Mr";
+run;
+
+/* Сортування датасету */
+proc sort data=Soroka.REPORT;
+by descending Class Age Name;
+run;
+
+/* Підготовка допоміжних даннийх звіту */
+data _null_;
+	set Soroka.REPORT(obs=30);
+	
+	retain sub1 0 sub2 0 sub3 0 chld 0 stdnt 0 ld 0;
+	
+	if Class = '1' then sub1 = sub1 + 1;
+	else if Class = '2' then sub2 = sub2 + 1;
+	else if Class = '3' then sub3 = sub3 + 1;
+	
+	if AgeGroup = 'Child' then chld = chld + 1;
+	else if AgeGroup = 'Teen' then stdnt = stdnt + 1;
+	else if AgeGroup = 'Adult' then ld = ld + 1;
+	
+	call symputx('sub1', sub1);
+	call symputx('sub2', sub2);
+	call symputx('sub3', sub3);
+	call symputx('chld', chld);
+	call symputx('stdnt', stdnt);
+	call symputx('ld', ld);
+run;
+
+/* Вивід звіту */
+title justify=right "Сорока Дмитро";
+title2 justify=right "16.07.2025";
+title3 "Звіт  про пасажирів Титаніка";
+footnote justify=left "Примітка: у виведеному уривку звіту
+ присутні &sub1 суб’єктів з 1 класу, &sub2 суб’єктів з 2 класу, &sub3 суб’єктів з 3 класу, в яких відсутня інформація про 
+вік. Виведено 30 суб’єктів, серед яких &chld дітей, &stdnt підлітків та &ld дорослих.";
+proc print data=Soroka.REPORT(obs=30) noobs;
+run;
+
+/* Увімкнення процедурних заголовків для подальших програм*/
+ods proctitle;
+/* Видалення посилання на бібліотеку, що б воно не заважало в інших програмах */
+*libname Soroka clear;

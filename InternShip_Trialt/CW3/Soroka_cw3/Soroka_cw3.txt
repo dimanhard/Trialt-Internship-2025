@@ -1,0 +1,278 @@
+/* pre program */
+ods noproctitle;
+
+/* create macro variables */
+%let sas_id = u64271711;
+%let lstnm = Soroka;
+
+/* macro programs: */
+
+/* CSV auto import files to libery */
+%macro csv_imp(direct);
+	data checker(keep=fname);
+		length fname $200;
+		
+		rc = filename('fref', "&direct");
+		did = dopen('fref');
+		
+		do i = 1 to dnum(did);
+			fname = dread(did, i);
+			
+			if upcase(scan(fname, -1, '.')) = 'CSV' then output;
+			
+		end;
+		
+		rc = dclose(did);
+		rc = filename('fref');
+	run;
+	
+	data _NULL_;
+	set checker;
+	
+ 	call execute(cats('proc import datafile="' ,
+ 	'&direct/' , fname , 
+ 	'" replace dbms=csv out=' , 
+	scan(fname, 1, '.') , ';guessingrows=max; run;'));  
+	run;
+%mend csv_imp;
+
+/* create library */
+libname &lstnm "/home/&sas_id/InternShip/&lstnm";
+
+/* importing files */
+%csv_imp(/home/&sas_id/InternShip/&lstnm);
+options validvarname=v7;
+proc import datafile="/home/u64271711/InternShip/Soroka/titanic3.xls" dbms=xls replace out=titanic3; run;
+
+/* delete symbol " from datasets.name */
+data test;set test; name=compress(name, '"'); run;
+data train;set train; name=compress(name, '"'); run;
+data Titanic;set Titanic; name=compress(name, '"'); run;
+data titanic3;set titanic3; name=compress(name, '"'); run;
+
+/* combine datasets */
+data test;set train test; ;run;
+
+/* sort datasets */
+proc sort data=test;by name; run;
+proc sort data=Titanic;by name; run;
+proc sort data=titanic3;by name; run;
+
+/* merge datasets */
+data &lstnm..PASSENGER;
+	merge Titanic(in=tit)
+	test(keep=name PassengerId in=tes)
+	titanic3(keep=name embarked home_dest in=tit3);
+	by name;
+	if tit and tes and tit3 then output;
+run;
+
+/* redacting PASSENGER dataset */
+data &lstnm..PASSENGER;
+	set &lstnm..PASSENGER;
+	if not missing(fare) then fareD=fare * 1.34;
+	format fareD dollar8.2;
+run;
+
+/* Calculate Quartiles */
+proc univariate data=&lstnm..PASSENGER outtable=qar noprint;var fare;run;
+
+/* creating formats */
+proc format;
+	value nage
+	low-12='Child'
+	13-18='Teen'
+	19-high='Adult';
+	
+	value nSurvived
+	1='Survived'
+	0='Died';
+	
+	value $nEmbarked
+	'C'='Cherbourg'
+	'Q'='Queenstown'
+	'S'='Southampton';
+	
+	value nFare
+	low-<7.9='Lower Quartile'
+	7.9-31.28='Median'
+	31.28<-high='Upper Quartile';
+	
+	value nclass
+	1='Upper'
+	2='Middle'
+	3='Lower';
+	
+	value n2class
+	1='First'
+	2='Second'
+	3='Third';
+run;
+
+/* edit PASSENGER datset */
+data &lstnm..PASSENGER;
+	set &lstnm..PASSENGER;
+	format age nage.
+	Survived nSurvived.
+	Embarked $nEmbarked.
+	Fare nFare.
+	Dmy date9.;
+	
+	if Embarked='C' then Dmy='10APR1912'd;
+	else if Embarked in ('S', 'Q') then Dmy='11APR1912'd;
+	
+	if not missing(Dmy) then BoardingDay=weekday(Dmy);
+	
+	if not missing(Dmy) then DaysAtSea='14APR1912'd - Dmy;
+	
+	label class= 'Passenger Class (1 = 1st; 2 = 2nd; 3 = 3rd)'
+	Survived= 'Survival'
+	name= 'Name'
+	gender= 'Sex'
+	age= 'Age'
+	PassengerId= 'Ticket Number'
+	fare= 'Passenger Fare (British pound)'
+	embarked= 'Port of Embarkation (C = Cherbourg; Q = Queenstown; S = Southampton)'
+	Home_dest= 'Home/Destination'
+	Dmy='Date'
+	BoardingDay='Boarding day of week'
+	DaysAtSea='Days at sea'
+	FareD= 'Passenger Fare (usd dollar)';
+run;
+
+/* creating sortet data */
+proc sort data=&lstnm..PASSENGER out=PASSENGER_sort;by class; run;
+
+/* creating FARE_data */
+data &lstnm..FARE_data;
+	set PASSENGER_sort (keep=class fare);
+	where class not is missing and fare not is missing;/* using obs where class and fare not miss */
+	by class;
+	
+	retain nobs 0 MAX_Fare 0 Mean_Fare 0 CV_Fare 0;
+	array fares[1310];
+	
+	nobs + 1;
+	if MAX_Fare < fare then MAX_Fare = fare;
+	Mean_Fare + fare;
+	fares[nobs]=fare;
+	
+	if last.class then do;
+		Mean_Fare = Mean_Fare / nobs;
+		
+		fares[1310] = 0;
+		do i = 1 to nobs;
+			fares[1310] + (fares[i] - Mean_Fare)**2;
+		end;
+		CV_Fare = sqrt(fares[1310] / nobs) / Mean_Fare * 100;
+	
+		output &lstnm..FARE_data;
+		
+		nobs = 0;
+		MAX_Fare = 0;
+		Mean_Fare = 0;
+		CV_Fare = 0;
+	end;
+	
+	keep class nobs MAX_Fare Mean_Fare CV_Fare;/* output for all classes apart */
+run;
+
+/* creating FARE_proc */
+proc means data=&lstnm..PASSENGER(keep=class fare) noprint nway;
+	class class;
+	format fare best12.;
+	output out=&lstnm..FARE_proc(drop=_type_ _freq_) n= nobs max=MAX_Fare mean=Mean_Fare std=CV_Fare;
+run;
+data &lstnm..FARE_proc;
+	set &lstnm..FARE_proc;
+	CV_Fare = CV_Fare / Mean_Fare * 100;
+run;
+
+/* compare(additional task) */
+/*proc compare base=&lstnm..FARE_data compare=&lstnm..FARE_proc;
+run;*/
+
+/* output FARE_data */
+title justify=right "Soroka Dmytro";
+title2 "Classes information";
+%let reportTime = %sysfunc(putn(%sysfunc(date()), ddmmyy10.)) %sysfunc(putn(%sysfunc(time()), time5.));
+footnote "Soroka_cw3.sas &reportTime";
+proc print data=&lstnm..FARE_data;
+	format class nclass.
+	Mean_Fare 8.3;
+run;
+
+title;
+footnote;
+
+/* Creating report  */
+ods rtf file="/home/&sas_id/InternShip/&lstnm/REPORT_&lstnm..rtf" bodytitle startpage=no keepn;
+
+title justify=right "Soroka Dmytro";
+%let reportTime = %sysfunc(putn(%sysfunc(date()), DATETIME20.));
+title2 justify=right "&reportTime";
+title3 "Information about titanic passengers";
+title4 justify=right "Table 1. Ratio of dead/alive by gender";
+footnote justify=left "Note: Count – number, Pct – percentage (e.g., female survivors, among all women).";
+proc tabulate data=&lstnm..PASSENGER;
+	class gender survived;
+	table (n=Count pctn=Pct), gender*survived='';
+run;
+
+title;
+footnote;
+
+data PASSENGER_ad;
+	set &lstnm..PASSENGER(keep=class age survived);
+	format class n2class.;
+	
+	if age ^= . then do;
+		if age <= 18 then tage = 'Child, Teen';
+		else tage = 'Adult';
+	end;
+	
+	drop age;
+run;
+proc sort data=PASSENGER_ad; by class tage survived; run;
+data PASSENGER_ad;
+	set PASSENGER_ad;
+	by class tage survived;
+	
+	where tage not is missing;
+		
+	retain alv 0 noalv 0;
+	
+	if survived ^= . then do;
+		if survived = 1 then alv + 1;
+		else noalv + 1;
+	end;
+	
+	if last.tage = 1 then do;
+		prcalv = alv / noalv * 100;
+		output;
+		alv=0;
+		noalv=0;
+		prcalv=0;
+	end;
+run;
+
+title justify=right "Table 2 Survival chances, depending on age and cabin class";
+footnote justify=left "Note: add a note on the formula used to determine the ratio (last column).";
+proc report data=PASSENGER_ad;
+	column class tage alv noalv prcalv;
+	define class / display "Cabin class" group;
+	define tage / display "Demographic category" group;
+	define alv / display "Number of survivors" ;
+	define noalv / display "Number of deaths" ;
+	define prcalv / display "The ratio of survivors to the dead";
+	compute prcalv;
+    	call define(_col_, "style", "style={background=red}");
+	endcomp;
+run;
+
+ods rtf close;
+
+/* after program */
+title;
+footnote;
+ods proctitle;

@@ -1,0 +1,849 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         /* pre program */
+ 71         ods noproctitle;
+ 72         
+ 73         /* create macro variables */
+ 74         %let sas_id = u64271711;
+ 75         %let lstnm = Soroka;
+ 76         
+ 77         /* macro programs: */
+ 78         
+ 79         /* CSV auto import files to libery */
+ 80         %macro csv_imp(direct, saved);
+ 81         data checker(keep=fname);
+ 82         length fname $200;
+ 83         
+ 84         rc = filename('fref', "&direct");
+ 85         did = dopen('fref');
+ 86         
+ 87         do i = 1 to dnum(did);
+ 88         fname = dread(did, i);
+ 89         
+ 90         if upcase(scan(fname, -1, '.')) = 'CSV' then output;
+ 91         
+ 92         end;
+ 93         
+ 94         rc = dclose(did);
+ 95         rc = filename('fref');
+ 96         run;
+ 97         
+ 98         data _NULL_;
+ 99         set checker;
+ 100        
+ 101         call execute(cats('proc import datafile="' ,
+ 102         '&direct/' , fname ,
+ 103         '" replace dbms=csv out=&saved..' ,
+ 104        scan(fname, 1, '.') , '; run;'));
+ 105        run;
+ 106        %mend csv_imp;
+ 107        
+ 108        /* Variable finder (additional task) */
+ 109        %macro var_fnd(tbl, vrbl);
+ 110        %local rc tid variable;
+ 111        
+ 112        %let tid = %sysfunc(open(&tbl));
+ 113        %let variable = %sysfunc(varnum(&tid, &vrbl));
+ 114        %let rc = %sysfunc(close(&tid));
+ 115        
+ 116        %if &variable = 0 %then %put Variable finder failure(variable &vrbl in dataset &tbl not present);
+ 117        %else %put Variable finder success(variable &vrbl in dataset &tbl present);
+ 118        %mend var_fnd;
+ 119        
+ 120        /* main */
+ 121        
+ 122        /* create library */
+ 123        libname &lstnm "/home/&sas_id/&lstnm";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/Soroka
+ 124        
+ 125        /* importing files */
+ 126        %csv_imp(/home/&sas_id/&lstnm, &lstnm);
+ 
+ NOTE: The data set WORK.CHECKER has 3 observations and 1 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              680.34k
+       OS Memory           30380.00k
+       Timestamp           23.07.2025 11:21:15 дп
+       Step Count                        991  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     87
+       Page Swaps                        0
+       Voluntary Context Switches        14
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.CHECKER.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              758.18k
+       OS Memory           30380.00k
+       Timestamp           23.07.2025 11:21:15 дп
+       Step Count                        992  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     57
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ NOTE: CALL EXECUTE generated line.
+ 1         + proc import datafile="/home/u64271711/Soroka/test.csv" replace dbms=csv out=Soroka.test;
+ 1         +                                                                                          run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 127         /**********************************************************************
+ 128         *   PRODUCT:   SAS
+ 129         *   VERSION:   9.4
+ 130         *   CREATOR:   External File Interface
+ 131         *   DATE:      23JUL25
+ 132         *   DESC:      Generated SAS Datastep Code
+ 133         *   TEMPLATE SOURCE:  (None Specified.)
+ 134         ***********************************************************************/
+ 135            data SOROKA.TEST    ;
+ 136            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 137            infile '/home/u64271711/Soroka/test.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 138               informat PassengerId best32. ;
+ 139               informat Pclass best32. ;
+ 140               informat Name $57. ;
+ 141               informat Sex $6. ;
+ 142               informat Age best32. ;
+ 143               informat SibSp best32. ;
+ 144               informat Parch best32. ;
+ 145               informat Ticket $16. ;
+ 146               informat Fare best32. ;
+ 147               informat Cabin $3. ;
+ 148               informat Embarked $1. ;
+ 149               format PassengerId best12. ;
+ 150               format Pclass best12. ;
+ 151               format Name $57. ;
+ 152               format Sex $6. ;
+ 153               format Age best12. ;
+ 154               format SibSp best12. ;
+ 155               format Parch best12. ;
+ 156               format Ticket $16. ;
+ 157               format Fare best12. ;
+ 158               format Cabin $3. ;
+ 159               format Embarked $1. ;
+ 160            input
+ 161                        PassengerId
+ 162                        Pclass
+ 163                        Name  $
+ 164                        Sex  $
+ 165                        Age
+ 166                        SibSp
+ 167                        Parch
+ 168                        Ticket  $
+ 169                        Fare
+ 170                        Cabin  $
+ 171                        Embarked  $
+ 172            ;
+ 173            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 174            run;
+ 
+ NOTE: The infile '/home/u64271711/Soroka/test.csv' is:
+       Filename=/home/u64271711/Soroka/test.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=22, липня 2025 11:56:28,
+       File Size (bytes)=28629
+ 
+ NOTE: 418 records were read from the infile '/home/u64271711/Soroka/test.csv'.
+       The minimum record length was 47.
+       The maximum record length was 118.
+ NOTE: The data set SOROKA.TEST has 418 observations and 11 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              9397.68k
+       OS Memory           36384.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        993  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     156
+       Page Swaps                        0
+       Voluntary Context Switches        24
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 418 rows created in SOROKA.TEST from /home/u64271711/Soroka/test.csv.
+   
+   
+   
+ NOTE: SOROKA.TEST data set was successfully created.
+ NOTE: The data set SOROKA.TEST has 418 observations and 11 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.01 seconds
+       memory              9397.68k
+       OS Memory           36644.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        993  Switch Count  8
+       Page Faults                       0
+       Page Reclaims                     1236
+       Page Swaps                        0
+       Voluntary Context Switches        108
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           320
+       
+ 
+ 2         + proc import datafile="/home/u64271711/Soroka/train.csv" replace dbms=csv out=Soroka.train;
+ 2         +                                                                                            run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 175         /**********************************************************************
+ 176         *   PRODUCT:   SAS
+ 177         *   VERSION:   9.4
+ 178         *   CREATOR:   External File Interface
+ 179         *   DATE:      23JUL25
+ 180         *   DESC:      Generated SAS Datastep Code
+ 181         *   TEMPLATE SOURCE:  (None Specified.)
+ 182         ***********************************************************************/
+ 183            data SOROKA.TRAIN    ;
+ 184            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 185            infile '/home/u64271711/Soroka/train.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 186               informat PassengerId best32. ;
+ 187               informat Survived best32. ;
+ 188               informat Pclass best32. ;
+ 189               informat Name $57. ;
+ 190               informat Sex $6. ;
+ 191               informat Age best32. ;
+ 192               informat SibSp best32. ;
+ 193               informat Parch best32. ;
+ 194               informat Ticket $16. ;
+ 195               informat Fare best32. ;
+ 196               informat Cabin $4. ;
+ 197               informat Embarked $1. ;
+ 198               format PassengerId best12. ;
+ 199               format Survived best12. ;
+ 200               format Pclass best12. ;
+ 201               format Name $57. ;
+ 202               format Sex $6. ;
+ 203               format Age best12. ;
+ 204               format SibSp best12. ;
+ 205               format Parch best12. ;
+ 206               format Ticket $16. ;
+ 207               format Fare best12. ;
+ 208               format Cabin $4. ;
+ 209               format Embarked $1. ;
+ 210            input
+ 211                        PassengerId
+ 212                        Survived
+ 213                        Pclass
+ 214                        Name  $
+ 215                        Sex  $
+ 216                        Age
+ 217                        SibSp
+ 218                        Parch
+ 219                        Ticket  $
+ 220                        Fare
+ 221                        Cabin  $
+ 222                        Embarked  $
+ 223            ;
+ 224            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 225            run;
+ 
+ NOTE: The infile '/home/u64271711/Soroka/train.csv' is:
+       Filename=/home/u64271711/Soroka/train.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=22, липня 2025 11:56:39,
+       File Size (bytes)=61194
+ 
+ NOTE: 891 records were read from the infile '/home/u64271711/Soroka/train.csv'.
+       The minimum record length was 48.
+       The maximum record length was 127.
+ NOTE: The data set SOROKA.TRAIN has 891 observations and 12 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9535.50k
+       OS Memory           36640.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        994  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     149
+       Page Swaps                        0
+       Voluntary Context Switches        32
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 891 rows created in SOROKA.TRAIN from /home/u64271711/Soroka/train.csv.
+   
+   
+   
+ NOTE: SOROKA.TRAIN data set was successfully created.
+ NOTE: The data set SOROKA.TRAIN has 891 observations and 12 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.00 seconds
+       memory              9535.50k
+       OS Memory           36900.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        994  Switch Count  9
+       Page Faults                       0
+       Page Reclaims                     1060
+       Page Swaps                        0
+       Voluntary Context Switches        115
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           552
+       
+ 
+ 3         + proc import datafile="/home/u64271711/Soroka/titanic.csv" replace dbms=csv out=Soroka.titanic;
+ 3         +                                                                                                run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 226         /**********************************************************************
+ 227         *   PRODUCT:   SAS
+ 228         *   VERSION:   9.4
+ 229         *   CREATOR:   External File Interface
+ 230         *   DATE:      23JUL25
+ 231         *   DESC:      Generated SAS Datastep Code
+ 232         *   TEMPLATE SOURCE:  (None Specified.)
+ 233         ***********************************************************************/
+ 234            data SOROKA.TITANIC    ;
+ 235            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 236            infile '/home/u64271711/Soroka/titanic.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 237               informat Name $51. ;
+ 238               informat Age best32. ;
+ 239               informat Gender $6. ;
+ 240               informat Class best32. ;
+ 241               informat Fare best32. ;
+ 242               informat Survived best32. ;
+ 243               format Name $51. ;
+ 244               format Age best12. ;
+ 245               format Gender $6. ;
+ 246               format Class best12. ;
+ 247               format Fare best12. ;
+ 248               format Survived best12. ;
+ 249            input
+ 250                        Name  $
+ 251                        Age
+ 252                        Gender  $
+ 253                        Class
+ 254                        Fare
+ 255                        Survived
+ 256            ;
+ 257            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 258            run;
+ 
+ NOTE: The infile '/home/u64271711/Soroka/titanic.csv' is:
+       Filename=/home/u64271711/Soroka/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=22, липня 2025 11:56:49,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile '/home/u64271711/Soroka/titanic.csv'.
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set SOROKA.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9386.28k
+       OS Memory           36640.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        995  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     142
+       Page Swaps                        0
+       Voluntary Context Switches        26
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 1309 rows created in SOROKA.TITANIC from /home/u64271711/Soroka/titanic.csv.
+   
+   
+   
+ NOTE: SOROKA.TITANIC data set was successfully created.
+ NOTE: The data set SOROKA.TITANIC has 1309 observations and 6 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.01 seconds
+       memory              9386.28k
+       OS Memory           36900.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        995  Switch Count  9
+       Page Faults                       0
+       Page Reclaims                     1063
+       Page Swaps                        0
+       Voluntary Context Switches        109
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           280
+       
+ 
+ 259        options validvarname=v7;
+ 260        proc import datafile="/home/u64271711/Soroka/titanic3.xls" dbms=xls replace out=&lstnm..titanic3;
+ 260      !                                                                                                   run;
+ 
+ NOTE:    Variable Name Change.  home.dest -> home_dest                       
+ NOTE: One or more variables were converted because the data type is not supported by the V9 engine. For more details, run with 
+       options MSGLEVEL=I.
+ NOTE: The import data set has 1310 observations and 14 variables.
+ NOTE: SOROKA.TITANIC3 data set was successfully created.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2595.40k
+       OS Memory           32716.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        996  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     317
+       Page Swaps                        0
+       Voluntary Context Switches        52
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 261        
+ 262        /* combine data */
+ 263        data &lstnm..comb;
+ 264        set &lstnm..train &lstnm..test;
+ 265        run;
+ 
+ NOTE: There were 891 observations read from the data set SOROKA.TRAIN.
+ NOTE: There were 418 observations read from the data set SOROKA.TEST.
+ NOTE: The data set SOROKA.COMB has 1309 observations and 12 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1557.34k
+       OS Memory           31924.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        997  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     125
+       Page Swaps                        0
+       Voluntary Context Switches        47
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 266        
+ 267        /* merge tables */
+ 268        proc sql;
+ 269        create table &lstnm..REPORT as
+ 270        select
+ 271        t.*,
+ 272        c.PassengerId,
+ 273        c.sibsp,
+ 274        c.parch,
+ 275        t3.embarked,
+ 276        t3.boat,
+ 277        t3.body,
+ 278        t3.home_dest
+ 279        from &lstnm..Titanic as t
+ 280        left join &lstnm..comb as c
+ 281        on t.name = c.name
+ 282        left join &lstnm..titanic3 as t3
+ 283        on t.name = t3.name;
+ NOTE: Table SOROKA.REPORT created, with 1321 rows and 13 columns.
+ 
+ 284        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              6768.56k
+       OS Memory           37176.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        998  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     693
+       Page Swaps                        0
+       Voluntary Context Switches        59
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           808
+       
+ 
+ 285        
+ 286        /* Creating report table */
+ 287        data &lstnm..REPORT (drop=ctg1p ctg2p);
+ 288        set &lstnm..REPORT;
+ 289        
+ 290        rename class = Pclass
+ 291        Survived = Survival;
+ 292        
+ 293        label class = 'Passenger Class (1 = 1st; 2 = 2nd; 3 = 3rd)'
+ 294        Survived = 'Survival (0 = No; 1 = Yes)'
+ 295        name = 'Name'
+ 296        age = 'Age'
+ 297        sibsp = 'Number of Siblings/Spouses Aboard'
+ 298        parch = 'Number of Parents/Children Aboard'
+ 299        fare = 'Passenger Fare (British pound)'
+ 300        embarked = 'Port of Embarkation (C = Cherbourg; Q = Queenstown; S = Southampton)'
+ 301        boat = 'Lifeboat'
+ 302        body = 'Body Identification Number'
+ 303        home_dest = 'Home/Destination';
+ 304        
+ 305        
+ 306        if upcase(embarked) = 'C' then embarked = 'Cherbourg';
+ 307        else if upcase(embarked) = 'Q' then embarked = 'Queenstown';
+ 308        else if upcase(embarked) = 'S' then embarked = 'Southampton';
+ 309        
+ 310        if nmiss(sibsp, parch) = 0 then do;
+ 311        if 3 <= sibsp + parch + 1 <= 4 then FamilySize = 'Medium';
+ 312        else if 1 <= sibsp + parch + 1 <= 2 then FamilySize = 'Small';
+ 313        if 5 <= sibsp + parch + 1  then FamilySize = 'Large';
+ 314        end;
+ 315        
+ 316        if 0 <= Age <= 12 then ctg1p = 'Child';
+ 317        else if 13 <= Age <= 18 then ctg1p = 'Teen';
+ 318        else if 19 <= Age then ctg1p = 'Adult';
+ 319        
+ 320        if Survived = 1 then ctg2p = 'Survived';
+ 321        else if Survived = 0 then ctg2p = 'Deceased';
+ 322        
+ 323        Category = cat(ctg1p, ' - ', ctg2p);
+ 324        run;
+ 
+ NOTE: There were 1321 observations read from the data set SOROKA.REPORT.
+ NOTE: The data set SOROKA.REPORT has 1321 observations and 15 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1914.96k
+       OS Memory           32560.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        999  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     255
+       Page Swaps                        0
+       Voluntary Context Switches        67
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1288
+       
+ 
+ 325        
+ 326        /* ods start calibration */
+ 327        ods select none;
+ 328        ods output Variables=&lstnm..meta;
+ 329        
+ 330        /* creating meta data set */
+ 331        proc contents data=&lstnm..REPORT;
+ 332        run;
+ 
+ NOTE: PROCEDURE CONTENTS used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2057.28k
+       OS Memory           32308.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1000  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     282
+       Page Swaps                        0
+       Voluntary Context Switches        46
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           288
+       
+ NOTE: The data set SOROKA.META has 15 observations and 9 variables.
+ 
+ 333        
+ 334        /* ods end calibration */
+ 335        ods select all;
+ 336        ods output close;
+ 337        
+ 338        /* editing meta */
+ 339        data &lstnm..meta (keep=Variable Label Type Len Source);
+ 340        set &lstnm..meta;
+ 341        
+ 342        length Source $30;
+ 343        
+ 344        if upcase(Variable) in ('NAME', 'SEX', 'AGE', 'PCLASS', 'TICKET', 'FARE', 'CABIN', 'SURVIVAL')
+ 345                then Source = 'Input data set Titanic';
+ 346            else if upcase(Variable) in ('PASSENGERID', 'SIBSP', 'PARCH')
+ 347                then Source = 'Input data set Train/Test';
+ 348            else if upcase(Variable) in ('EMBARKED', 'BOAT', 'BODY', 'HOME_DEST')
+ 349                then Source = 'Input data set Titanic3';
+ 350            else Source = 'Created etc';
+ 351        run;
+ 
+ NOTE: There were 15 observations read from the data set SOROKA.META.
+ NOTE: The data set SOROKA.META has 15 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              964.90k
+       OS Memory           31664.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1001  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        40
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 352        
+ 353        /* creating FREQ data set */
+ 354        proc freq data=&lstnm..REPORT noprint;
+ 355        table Category / out=&lstnm..FREQ(keep=Category count);
+ 356        run;
+ 
+ NOTE: There were 1321 observations read from the data set SOROKA.REPORT.
+ NOTE: The data set SOROKA.FREQ has 8 observations and 2 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1685.56k
+       OS Memory           32308.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1002  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     276
+       Page Swaps                        0
+       Voluntary Context Switches        51
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 357        
+ 358        /* creating MATRIX data set */
+ 359        proc sql;
+ 360        create table &lstnm..MATRIX as select
+ 361        name,
+ 362        
+ 363        case when (Category = "Child - Survived") then "Yes" else "No" end as Child_Survived,
+ 364        
+ 365        case when (Category = "Child - Deceased") then "Yes" else "No" end as Child_Deceased,
+ 366        
+ 367        case when (Category = "Teen - Survived") then "Yes" else "No" end as Teen_Survived,
+ 368        
+ 369        case when (Category = "Teen - Deceased") then "Yes" else "No" end as Teen_Deceased,
+ 370        
+ 371        case when (Category = "Adult - Survived") then "Yes" else "No" end as Adult_Survived,
+ 372        
+ 373        case when (Category = "Adult - Deceased") then "Yes" else "No" end as Adult_Deceased
+ 374        from &lstnm..REPORT;
+ NOTE: Table SOROKA.MATRIX created, with 1321 rows and 7 columns.
+ 
+ 375        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              6349.40k
+       OS Memory           36912.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1003  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     188
+       Page Swaps                        0
+       Voluntary Context Switches        36
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 376        
+ 377        /* output data */
+ 378        title "META information";
+ 379        footnote "information to understand what columns include";
+ 380        proc print data=&lstnm..META;
+ 381        run;
+ 
+ NOTE: There were 15 observations read from the data set SOROKA.META.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              1630.65k
+       OS Memory           31660.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1004  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     126
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 382        
+ 383        title "FREQ information";
+ 384        footnote "263 pasagears don't have information about age";
+ 385        proc print data=&lstnm..FREQ;
+ 386        run;
+ 
+ NOTE: There were 8 observations read from the data set SOROKA.FREQ.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              628.53k
+       OS Memory           31660.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1005  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     72
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 387        
+ 388        title "MATRIX information";
+ 389        footnote "(output only first 30 observations)";
+ 390        proc print data=&lstnm..MATRIX (obs=30);
+ 391        run;
+ 
+ NOTE: There were 30 observations read from the data set SOROKA.MATRIX.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.00 seconds
+       memory              726.12k
+       OS Memory           31660.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1006  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     66
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           16
+       
+ 
+ 392        
+ 393        title "REPORT information";
+ 394        footnote "(output only first 30 observations)";
+ 395        proc print data=&lstnm..REPORT (obs=30);
+ 396        run;
+ 
+ NOTE: There were 30 observations read from the data set SOROKA.REPORT.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.05 seconds
+       user cpu time       0.06 seconds
+       system cpu time     0.00 seconds
+       memory              1256.00k
+       OS Memory           32044.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1007  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     159
+       Page Swaps                        0
+       Voluntary Context Switches        5
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           32
+       
+ 
+ 397        
+ 398        /* additional tasks */
+ 399        
+ 400        /* Variable finder */
+ 401        %var_fnd(&lstnm..REPORT, body);
+ Variable finder success(variable body in dataset Soroka.REPORT present)
+ 402        %var_fnd(&lstnm..REPORT, sex);
+ Variable finder failure(variable sex in dataset Soroka.REPORT not present)
+ 403        
+ 404        /* SQL dataset with 1st class passengers and ticket cost more than mean */
+ 405        proc sql;
+ 406        create table &lstnm..special as
+ 407        select *
+ 408        from &lstnm..REPORT
+ 409        where pclass = 1 and fare > (select mean(fare) from &lstnm..REPORT);
+ NOTE: Table SOROKA.SPECIAL created, with 235 rows and 15 columns.
+ 
+ 410        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              6180.84k
+       OS Memory           37168.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1008  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     197
+       Page Swaps                        0
+       Voluntary Context Switches        45
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 411        
+ 412        /* distribution of passengers by FamilySize in the form of a bar chart */
+ 413        title "distribution of passengers by FamilySize (additional task)";
+ 414        proc sgplot data=&lstnm..REPORT;
+ 415        vbar FamilySize;
+ 416        yaxis label="Passagiere count";
+ 417        run;
+ 
+ NOTE: PROCEDURE SGPLOT used (Total process time):
+       real time           0.10 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.00 seconds
+       memory              8964.78k
+       OS Memory           39092.00k
+       Timestamp           23.07.2025 11:21:16 дп
+       Step Count                        1009  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     2113
+       Page Swaps                        0
+       Voluntary Context Switches        157
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           632
+       
+ NOTE: There were 1321 observations read from the data set SOROKA.REPORT.
+ 
+ 418        
+ 419        /* after program */
+ 420        ods proctitle;
+ 421        
+ 422        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 432        

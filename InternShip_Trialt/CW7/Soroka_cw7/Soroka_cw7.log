@@ -1,0 +1,484 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         ods noproctitle;
+ 71         
+ 72         /*import data start**************************************************************************************************/
+ 73         libname Soroka "/home/u64271711/InternShip/Soroka_cw7";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/InternShip/Soroka_cw7
+ 74         options validvarname=v7;
+ 75         proc import datafile="/home/u64271711/InternShip/Soroka_cw7/titanic.csv"
+ 76         dbms=csv replace out=titanic;
+ 77         guessingrows=max;
+ 78         run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 79          /**********************************************************************
+ 80          *   PRODUCT:   SAS
+ 81          *   VERSION:   9.4
+ 82          *   CREATOR:   External File Interface
+ 83          *   DATE:      18AUG25
+ 84          *   DESC:      Generated SAS Datastep Code
+ 85          *   TEMPLATE SOURCE:  (None Specified.)
+ 86          ***********************************************************************/
+ 87             data WORK.TITANIC    ;
+ 88             %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 89             infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 90                informat Name $84. ;
+ 91                informat Age best32. ;
+ 92                informat Gender $6. ;
+ 93                informat Class best32. ;
+ 94                informat Fare best32. ;
+ 95                informat Survived best32. ;
+ 96                format Name $84. ;
+ 97                format Age best12. ;
+ 98                format Gender $6. ;
+ 99                format Class best12. ;
+ 100               format Fare best12. ;
+ 101               format Survived best12. ;
+ 102            input
+ 103                        Name  $
+ 104                        Age
+ 105                        Gender  $
+ 106                        Class
+ 107                        Fare
+ 108                        Survived
+ 109            ;
+ 110            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 111            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw7/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=14, серпня 2025 13:13:06,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv'.
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9566.84k
+       OS Memory           46532.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6703  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     135
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 1309 rows created in WORK.TITANIC from /home/u64271711/InternShip/Soroka_cw7/titanic.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC data set was successfully created.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.27 seconds
+       user cpu time       0.26 seconds
+       system cpu time     0.00 seconds
+       memory              9566.84k
+       OS Memory           46792.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6703  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1035
+       Page Swaps                        0
+       Voluntary Context Switches        91
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           568
+       
+ 
+ 112        /*import data end**************************************************************************************************/
+ 113        
+ 114        /* start macro programs
+ 114      ! *******************************************************************************************************/
+ 115        %macro totobs(mydata);
+ 116        %let mydataID=%sysfunc(OPEN(&mydata.,IN));
+ 117        %let NOBS=%sysfunc(ATTRN(&mydataID,NOBS));
+ 118        %let RC=%sysfunc(CLOSE(&mydataID));
+ 119        &NOBS
+ 120        %mend;
+ 121        /* end macro programs
+ 121      ! *******************************************************************************************************/
+ 122        
+ 123        /*creating format
+ 123      ! start**************************************************************************************************/
+ 124        proc format;
+ 125        
+ 125      !  value cls
+ 126        1='First'
+ 127        2='Second'
+ 128        3='Third';
+ NOTE: Format CLS is already on the library WORK.FORMATS.
+ NOTE: Format CLS has been output.
+ 129        
+ 129      !  value sur
+ 130        1='Survived'
+ 131        0='Died';
+ NOTE: Format SUR is already on the library WORK.FORMATS.
+ NOTE: Format SUR has been output.
+ 132        
+ 132      !  value geosur
+ 133        1='Survived (GeoMean)'
+ 134        0='Died (GeoMean)';
+ NOTE: Format GEOSUR is already on the library WORK.FORMATS.
+ NOTE: Format GEOSUR has been output.
+ 135        run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              354.59k
+       OS Memory           41548.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6704  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     14
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           32
+       
+ 
+ 136        /*creating format end**************************************************************************************************/
+ 137        
+ 138        /*creating aditionat tables
+ 138      ! start**************************************************************************************************/
+ 139        data titanic_log;
+ 140        set titanic;
+ 141        if age > 0 then ln_age=log(age);
+ 142        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC_LOG has 1309 observations and 7 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1320.53k
+       OS Memory           42068.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6705  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 143        proc sort data=titanic_log out=titanic_sort;
+ 144        by class survived;
+ 145        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_LOG.
+ NOTE: The data set WORK.TITANIC_SORT has 1309 observations and 7 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1976.59k
+       OS Memory           42848.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6706  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     140
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           536
+       
+ 
+ 146        proc means data=titanic_sort noprint;
+ 147        class class survived;
+ 148        var ln_age;
+ 149        output out=meansout(drop=_type_ _freq_ where=(class is not missing
+ 150          and survived is not missing)) mean=Gmean;
+ 151        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_SORT.
+ NOTE: The data set WORK.MEANSOUT has 6 observations and 3 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9118.12k
+       OS Memory           50024.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6707  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1911
+       Page Swaps                        0
+       Voluntary Context Switches        37
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 152        proc means data=titanic_sort noprint;
+ 153          class class survived;
+ 154          var age;
+ 155          output out=basic_means(drop=_type_ _freq_ where=(class is not missing
+ 156          and survived is not missing)) mean=Bmean;
+ 157        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_SORT.
+ NOTE: The data set WORK.BASIC_MEANS has 6 observations and 3 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              9119.12k
+       OS Memory           50024.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6708  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1965
+       Page Swaps                        0
+       Voluntary Context Switches        35
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 158        data all_mean(drop=Gmean);
+ 159        merge basic_means(in=main_tab)
+ 160        meansout;
+ 161        by class survived;
+ 162        if main_tab;
+ 163        geo_mean=round(exp(Gmean), 0.01);
+ 164        Bmean = round(Bmean, 0.01);
+ 165        if survived = 1 then do;
+ 166        BmeanS = Bmean;
+ 167        GmeanS = geo_mean;
+ 168        end;
+ 169        else if survived = 0 then do;
+ 170        BmeanD = Bmean;
+ 171        GmeanD = geo_mean;
+ 172        end;
+ 173        run;
+ 
+ NOTE: There were 6 observations read from the data set WORK.BASIC_MEANS.
+ NOTE: There were 6 observations read from the data set WORK.MEANSOUT.
+ NOTE: The data set WORK.ALL_MEAN has 6 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1638.31k
+       OS Memory           41816.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6709  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     155
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 174        data titanic_out;
+ 175        merge titanic_sort(in=main_tab)
+ 176        all_mean;
+ 177        by class survived;
+ 178        if main_tab;
+ 179        Surviving = Survived;
+ 180        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_SORT.
+ NOTE: There were 6 observations read from the data set WORK.ALL_MEAN.
+ NOTE: The data set WORK.TITANIC_OUT has 1309 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1779.53k
+       OS Memory           41816.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6710  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     150
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 181        /*creating aditionat tables
+ 181      ! end**************************************************************************************************/
+ 182        
+ 183        /* start creating template
+ 183      ! *******************************************************************************************************/
+ 184        proc template;
+ 185        define style intern;
+ 186        parent=styles.rtf;
+ 187        style Table from output /
+ 188        background=_undef_
+ 189        Rules=groups
+ 190        Frame=hsides
+ 191        textalign=center
+ 192        font=("Courier New", 9pt)
+ 193        cellpadding = 0pt
+ 194        cellspacing = 0pt
+ 195        borderwidth = 0.25pt
+ 196        width = 100%
+ 197        asis = on;
+ 198        style fonts from fonts /
+ 199        'docFont' = ("Courier New", 9pt);
+ 200        style rowheader /
+ 201        background=white
+ 202        font=("Courier New", 9pt)
+ 203        asis=on;
+ 204        
+ 205        style header /
+ 206        font=("Courier New", 9pt)
+ 207        textalign=center
+ 208        verticalalign=center
+ 209        asis=on
+ 210        background=white;
+ 211        
+ 212        style systemtitle /
+ 213        font=("Courier New", 9pt);
+ 214        style systemfooter /
+ 215        font=("Courier New", 9pt)
+ 216        asis=on;
+ 217        style data from data /
+ 218        font=("Courier New", 9pt)
+ 219        verticalalign = m
+ 220        asis=on
+ 221        marginbottom = 0.8pt
+ 222        margintop = 1.25pt;
+ 223        replace Body from Document /
+ 224         marginleft=1in
+ 225             marginright=0.6in;
+ 226        end;
+ NOTE: Overwriting existing template/link: Intern
+ NOTE: STYLE 'Intern' has been saved to: WORK.TEMPLAT
+ 227        run;
+ NOTE: PROCEDURE TEMPLATE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              415.09k
+       OS Memory           41036.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6711  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     14
+       Page Swaps                        0
+       Voluntary Context Switches        6
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           72
+       
+ 
+ 228        /* end creating template
+ 228      ! *******************************************************************************************************/
+ 229        
+ 230        /*creating report**************************************************************************************************/
+ 231        ods rtf file="/home/u64271711/InternShip/Soroka_cw7/f1_Soroka.rtf"
+ 232        style=intern startpage=never bodytitle nogtitle nogfootnote;
+ NOTE: Writing RTF Body file: /home/u64271711/InternShip/Soroka_cw7/f1_Soroka.rtf
+ 233        options nodate nonumber
+ 234        orientation=landscape papersize=(11in 8.5in)
+ 235        topmargin=1.25in bottommargin=0.8in
+ 236        leftmargin=1in rightmargin=0.6in;
+ 237        %let date = %sysfunc(date(),  DATE9.);
+ 238        %let time = %sysfunc(time(), time5.);
+ 239        %let tot = %totobs(titanic_out);
+ 240        title justify=right 'Soroka Dmytro';
+ 241        title2 justify=right "&date &time";
+ 242        title3 justify=center "Passengers on Titanic (N=&tot.)";
+ 243        title4 'Figure 1. Distribution of age by class and survival status';
+ 244        footnote justify=left 'Note: The plot displays Age'
+ 245        'values for the full dataset without percentile '
+ 246        'filtering. Diamonds indicate the geometric mean for Age>0.';
+ 247        /*start sgplot**************************************************************************************************/
+ 248        ods graphics / height=4.5in width=7.765in;
+ 249        proc sgplot  data=titanic_out noautolegend noborder;
+ 250        format class cls. survived sur. Surviving geosur.;
+ 251        vbox age / group=survived category=class
+ 252        boxwidth=0.3  meanattrs=(size=0)
+ 253        name="boxes" outlierattrs=(symbol=circle);
+ 254        xaxis label="Pclass";
+ 255            yaxis label="Age" grid;
+ 256        scatter x=Class y=BmeanD /
+ 257                    markerattrs=(symbol=circle)
+ 258                    discreteoffset=-0.18
+ 259                    nomissinggroup group=Survived;
+ 260            scatter x=Class y=BmeanS /
+ 261                    markerattrs=(symbol=plus)
+ 262                    discreteoffset=0.18
+ 263                    nomissinggroup group=Survived ;
+ 264            scatter x=Class y=GmeanD /
+ 265                    markerattrs=(symbol=diamondfilled size=5)
+ 266                    discreteoffset=-0.18 datalabel
+ 267                    nomissinggroup group=Surviving
+ 268                    datalabelattrs=(Color=black weight=bold size=0.15in) datalabelpos=left;
+ 269            format GmeanS 8.2;
+ 270            scatter x=Class y=GmeanS /
+ 271                    markerattrs=(symbol=diamondfilled size=5)
+ 272                    discreteoffset=0.18 datalabel
+ 273                    nomissinggroup group=Surviving
+ 274                    datalabelattrs=(Color=black weight=bold size=0.15in) datalabelpos=right
+ 275                    name="geo";
+ 276        
+ 277             keylegend "boxes" "geo"  / noborder;
+ 278        run;
+ 
+ NOTE: PROCEDURE SGPLOT used (Total process time):
+       real time           0.38 seconds
+       user cpu time       0.19 seconds
+       system cpu time     0.01 seconds
+       memory              17307.34k
+       OS Memory           56660.00k
+       Timestamp           18.08.2025 12:40:41 пп
+       Step Count                        6712  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     4288
+       Page Swaps                        0
+       Voluntary Context Switches        540
+       Involuntary Context Switches      5
+       Block Input Operations            0
+       Block Output Operations           5072
+       
+ NOTE: Data label collision avoidance has been disabled because the threshold has been reached. You can set LABELMAX=900 in the ODS 
+       GRAPHICS statement to restore collision avoidance.
+ NOTE: Data label collision avoidance has been disabled because the threshold has been reached. You can set LABELMAX=500 in the ODS 
+       GRAPHICS statement to restore collision avoidance.
+ NOTE: Data label collision avoidance has been disabled because the threshold has been reached. You can set LABELMAX=900 in the ODS 
+       GRAPHICS statement to restore collision avoidance.
+ NOTE: Data label collision avoidance has been disabled because the threshold has been reached. You can set LABELMAX=500 in the ODS 
+       GRAPHICS statement to restore collision avoidance.
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_OUT.
+ 
+ 279          ods graphics off;
+ 280        /*end sgplot**************************************************************************************************/
+ 281        
+ 282        ods rtf close;
+ 283        /*close report**************************************************************************************************/
+ 284        
+ 285        ods proctitle;
+ 286        
+ 287        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 297        

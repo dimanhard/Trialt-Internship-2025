@@ -1,0 +1,219 @@
+/* pre program */
+ods noproctitle;
+
+/* create macro variables */
+%let sas_id = u64271711;
+%let lstnm = Soroka;
+
+/* macro programs: */
+
+/* CSV auto import files to libery */
+%macro csv_imp(direct, saved);
+	data checker(keep=fname);
+		length fname $200;
+		
+		rc = filename('fref', "&direct");
+		did = dopen('fref');
+		
+		do i = 1 to dnum(did);
+			fname = dread(did, i);
+			
+			if upcase(scan(fname, -1, '.')) = 'CSV' then output;
+			
+		end;
+		
+		rc = dclose(did);
+		rc = filename('fref');
+	run;
+	
+	data _NULL_;
+	set checker;
+	
+ 	call execute(cats('proc import datafile="' ,
+ 	'&direct/' , fname , 
+ 	'" replace dbms=csv out=&saved..' , 
+	scan(fname, 1, '.') , '; run;')); 
+	run;
+%mend csv_imp;
+
+/* Variable finder (additional task) */
+%macro var_fnd(tbl, vrbl);
+	%local rc tid variable;
+	
+	%let tid = %sysfunc(open(&tbl));
+	%let variable = %sysfunc(varnum(&tid, &vrbl));
+	%let rc = %sysfunc(close(&tid));
+	
+	%if &variable = 0 %then %put Variable finder failure(variable &vrbl in dataset &tbl not present);
+	%else %put Variable finder success(variable &vrbl in dataset &tbl present);
+%mend var_fnd;
+
+/* main */
+
+/* create library */
+libname &lstnm "/home/&sas_id/&lstnm";
+
+/* importing files */
+%csv_imp(/home/&sas_id/&lstnm, &lstnm);
+options validvarname=v7;
+proc import datafile="/home/u64271711/Soroka/titanic3.xls" dbms=xls replace out=&lstnm..titanic3; run;
+
+/* combine data */
+data &lstnm..comb;
+	set &lstnm..train &lstnm..test;
+run;
+
+/* merge tables */
+proc sql;
+	create table &lstnm..REPORT as
+	select 
+		t.*,
+		c.PassengerId,
+		c.sibsp,
+		c.parch,
+		t3.embarked,
+		t3.boat,
+		t3.body,
+		t3.home_dest
+	from &lstnm..Titanic as t
+	left join &lstnm..comb as c
+		on t.name = c.name
+	left join &lstnm..titanic3 as t3
+		on t.name = t3.name;
+quit;
+
+/* Creating report table */
+data &lstnm..REPORT (drop=ctg1p ctg2p);
+	set &lstnm..REPORT;
+	
+	rename class = Pclass 
+	Survived = Survival;
+	
+	label class = 'Passenger Class (1 = 1st; 2 = 2nd; 3 = 3rd)'
+	Survived = 'Survival (0 = No; 1 = Yes)'
+	name = 'Name' 
+	age = 'Age' 
+	sibsp = 'Number of Siblings/Spouses Aboard'
+	parch = 'Number of Parents/Children Aboard'
+	fare = 'Passenger Fare (British pound)'
+	embarked = 'Port of Embarkation (C = Cherbourg; Q = Queenstown; S = Southampton)'
+	boat = 'Lifeboat'
+	body = 'Body Identification Number'
+	home_dest = 'Home/Destination';
+	
+
+	if upcase(embarked) = 'C' then embarked = 'Cherbourg';
+	else if upcase(embarked) = 'Q' then embarked = 'Queenstown';
+	else if upcase(embarked) = 'S' then embarked = 'Southampton';
+	
+	if nmiss(sibsp, parch) = 0 then do;
+		if 3 <= sibsp + parch + 1 <= 4 then FamilySize = 'Medium';
+		else if 1 <= sibsp + parch + 1 <= 2 then FamilySize = 'Small';
+		if 5 <= sibsp + parch + 1  then FamilySize = 'Large';
+	end;
+	
+	if 0 <= Age <= 12 then ctg1p = 'Child';
+	else if 13 <= Age <= 18 then ctg1p = 'Teen';
+	else if 19 <= Age then ctg1p = 'Adult';
+	
+	if Survived = 1 then ctg2p = 'Survived';
+	else if Survived = 0 then ctg2p = 'Deceased';
+	
+	Category = cat(ctg1p, ' - ', ctg2p);
+run;
+
+/* ods start calibration */
+ods select none;
+ods output Variables=&lstnm..meta;
+
+/* creating meta data set */
+proc contents data=&lstnm..REPORT;
+run;
+
+/* ods end calibration */
+ods select all;
+ods output close;
+
+/* editing meta */
+data &lstnm..meta (keep=Variable Label Type Len Source);
+	set &lstnm..meta;
+	
+	length Source $30;
+	
+	if upcase(Variable) in ('NAME', 'SEX', 'AGE', 'PCLASS', 'TICKET', 'FARE', 'CABIN', 'SURVIVAL') 
+        then Source = 'Input data set Titanic';
+    else if upcase(Variable) in ('PASSENGERID', 'SIBSP', 'PARCH') 
+        then Source = 'Input data set Train/Test';
+    else if upcase(Variable) in ('EMBARKED', 'BOAT', 'BODY', 'HOME_DEST') 
+        then Source = 'Input data set Titanic3';
+    else Source = 'Created etc';
+run;
+
+/* creating FREQ data set */
+proc freq data=&lstnm..REPORT noprint;
+	table Category / out=&lstnm..FREQ(keep=Category count);
+run;
+
+/* creating MATRIX data set */
+proc sql;
+	create table &lstnm..MATRIX as select 
+		name,
+		
+		case when (Category = "Child - Survived") then "Yes" else "No" end as Child_Survived,
+
+		case when (Category = "Child - Deceased") then "Yes" else "No" end as Child_Deceased,
+	
+		case when (Category = "Teen - Survived") then "Yes" else "No" end as Teen_Survived,
+		
+		case when (Category = "Teen - Deceased") then "Yes" else "No" end as Teen_Deceased,
+		
+		case when (Category = "Adult - Survived") then "Yes" else "No" end as Adult_Survived,
+		
+		case when (Category = "Adult - Deceased") then "Yes" else "No" end as Adult_Deceased
+		from &lstnm..REPORT;
+quit;
+
+/* output data */
+title "META information";
+footnote "information to understand what columns include";
+proc print data=&lstnm..META;
+run;
+
+title "FREQ information";
+footnote "263 pasagears don't have information about age";
+proc print data=&lstnm..FREQ;
+run;
+
+title "MATRIX information";
+footnote "(output only first 30 observations)";
+proc print data=&lstnm..MATRIX (obs=30);
+run;
+
+title "REPORT information";
+footnote "(output only first 30 observations)";
+proc print data=&lstnm..REPORT (obs=30);
+run;
+
+/* additional tasks */
+
+/* Variable finder */
+%var_fnd(&lstnm..REPORT, body);
+%var_fnd(&lstnm..REPORT, sex);
+
+/* SQL dataset with 1st class passengers and ticket cost more than mean */
+proc sql;
+	create table &lstnm..special as
+	select *
+	from &lstnm..REPORT
+	where pclass = 1 and fare > (select mean(fare) from &lstnm..REPORT);
+quit;
+
+/* distribution of passengers by FamilySize in the form of a bar chart */
+title "distribution of passengers by FamilySize (additional task)";
+proc sgplot data=&lstnm..REPORT;
+	vbar FamilySize;
+	yaxis label="Passagiere count";
+run;
+
+/* after program */
+ods proctitle;

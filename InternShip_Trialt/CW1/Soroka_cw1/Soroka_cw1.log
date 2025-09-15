@@ -1,0 +1,264 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         /* Створення бібліотеки */
+ 71         libname Soroka "/home/u64271711/Soroka";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/Soroka
+ 72         
+ 73         /* Вимкнення процедурних заголовків */
+ 74         ods noproctitle;
+ 75         
+ 76         /* Застосування Data Step для завантаження датасета типу .csv в sas */
+ 77         data Soroka.Titanic;
+ 78         infile "/home/u64271711/Soroka/titanic.csv" dsd lrecl=10000 firstobs=2;
+ 79         input Name : $51. Age Gender $ Class  Fare Survived ;
+ 80         run;
+ 
+ NOTE: The infile "/home/u64271711/Soroka/titanic.csv" is:
+       Filename=/home/u64271711/Soroka/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=16, липня 2025 12:07:27,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile "/home/u64271711/Soroka/titanic.csv".
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set SOROKA.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              838.34k
+       OS Memory           22692.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        357  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     133
+       Page Swaps                        0
+       Voluntary Context Switches        33
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 81         
+ 82         /* Зупиняємо вивід */
+ 83         ods select none;
+ 84         
+ 85         /* Вибираємо вивід для створення meta датасету */
+ 86         ods output Position=Soroka.meta;
+ 87         
+ 88         /* Створюємо meta */
+ 89         proc contents data=Soroka.Titanic order=varnum;
+ 90         run;
+ 
+ NOTE: PROCEDURE CONTENTS used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.01 seconds
+       memory              1411.06k
+       OS Memory           23212.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        358  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     212
+       Page Swaps                        0
+       Voluntary Context Switches        44
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           280
+       
+ NOTE: The data set SOROKA.META has 6 observations and 5 variables.
+ 
+ 91         
+ 92         ods output close;
+ 93         
+ 94         /* Відновлюємо вивід */
+ 95         ods select default;
+ 96         
+ 97         /* Прибираємо непотрібні стовпці з Soroka.meta */
+ 98         data Soroka.meta;
+ 99         set Soroka.meta;
+ 100        keep Variable Type Len;
+ 101        run;
+ 
+ NOTE: There were 6 observations read from the data set SOROKA.META.
+ NOTE: The data set SOROKA.META has 6 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              945.21k
+       OS Memory           22952.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        359  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     126
+       Page Swaps                        0
+       Voluntary Context Switches        38
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 102        
+ 103        /* Створення звіту */
+ 104        data Soroka.REPORT;
+ 105        set Soroka.Titanic;
+ 106        
+ 107        /* Вибір потрібних рядків і колонок */
+ 108        where (Class=1 and Survived=1) or Fare>=50;
+ 109        drop Survived Fare;
+ 110        
+ 111        /* Створення стовбця AgeGroup */
+ 112        length AgeGroup $ 7;
+ 113        if Age = . then AgeGroup = "Unknown";
+ 114        else if Age <= 12 then AgeGroup = "Child";
+ 115        else if  Age >= 19 then AgeGroup = "Adult";
+ 116        else AgeGroup = "Teen";
+ 117        
+ 118        /* Створення стовбця Sex */
+ 119        length Sex $ 30;
+ 120        Sex = upcase(substr(Gender, 1, 1));
+ 121        
+ 122        /* Створення стовбця Title */
+ 123        length Title $ 6;
+ 124        if find(Name, 'Master') then Title = "Master";
+ 125        else if find(Name, 'Mrs') then Title = "Mrs";
+ 126        else if find(Name, 'Miss') then Title = "Miss";
+ 127        else Title = "Mr";
+ 128        run;
+ 
+ NOTE: There were 293 observations read from the data set SOROKA.TITANIC.
+       WHERE ((Class=1) and (Survived=1)) or (Fare>=50);
+ NOTE: The data set SOROKA.REPORT has 293 observations and 7 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1096.90k
+       OS Memory           22952.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        360  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     115
+       Page Swaps                        0
+       Voluntary Context Switches        39
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 129        
+ 130        /* Сортування датасету */
+ 131        proc sort data=Soroka.REPORT;
+ 132        by descending Class Age Name;
+ 133        run;
+ 
+ NOTE: There were 293 observations read from the data set SOROKA.REPORT.
+ NOTE: The data set SOROKA.REPORT has 293 observations and 7 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              922.90k
+       OS Memory           22952.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        361  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     113
+       Page Swaps                        0
+       Voluntary Context Switches        39
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 134        
+ 135        /* Підготовка допоміжних даннийх звіту */
+ 136        data _null_;
+ 137        set Soroka.REPORT(obs=30);
+ 138        
+ 139        retain sub1 0 sub2 0 sub3 0 chld 0 stdnt 0 ld 0;
+ 140        
+ 141        if Class = '1' then sub1 = sub1 + 1;
+ 142        else if Class = '2' then sub2 = sub2 + 1;
+ 143        else if Class = '3' then sub3 = sub3 + 1;
+ 144        
+ 145        if AgeGroup = 'Child' then chld = chld + 1;
+ 146        else if AgeGroup = 'Teen' then stdnt = stdnt + 1;
+ 147        else if AgeGroup = 'Adult' then ld = ld + 1;
+ 148        
+ 149        call symputx('sub1', sub1);
+ 150        call symputx('sub2', sub2);
+ 151        call symputx('sub3', sub3);
+ 152        call symputx('chld', chld);
+ 153        call symputx('stdnt', stdnt);
+ 154        call symputx('ld', ld);
+ 155        run;
+ 
+ NOTE: Character values have been converted to numeric values at the places given by: (Line):(Column).
+       141:13   142:18   143:18   
+ NOTE: There were 30 observations read from the data set SOROKA.REPORT.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              863.59k
+       OS Memory           22692.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        362  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     57
+       Page Swaps                        0
+       Voluntary Context Switches        8
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 156        
+ 157        /* Вивід звіту */
+ 158        title justify=right "Сорока Дмитро";
+ 159        title2 justify=right "16.07.2025";
+ 160        title3 "Звіт  про пасажирів Титаніка";
+ 161        footnote justify=left "Примітка: у виведеному уривку звіту
+ 162         присутні &sub1 суб’єктів з 1 класу, &sub2 суб’єктів з 2 класу, &sub3
+ 162      ! суб’єктів з 3 класу, в яких відсутня інформація про
+ 163        вік. Виведено 30 суб’єктів, серед яких &chld дітей, &stdnt підлітків та &ld
+ 163      !  дорослих.";
+ NOTE: The quoted string currently being processed has become more than 262 bytes long.  You might have unbalanced quotation marks.
+ 164        proc print data=Soroka.REPORT(obs=30) noobs;
+ 165        run;
+ 
+ NOTE: There were 30 observations read from the data set SOROKA.REPORT.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.00 seconds
+       memory              1592.46k
+       OS Memory           22692.00k
+       Timestamp           16.07.2025 07:03:29 пп
+       Step Count                        363  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     96
+       Page Swaps                        0
+       Voluntary Context Switches        5
+       Involuntary Context Switches      4
+       Block Input Operations            0
+       Block Output Operations           16
+       
+ 
+ 166        
+ 167        /* Увімкнення процедурних заголовків для подальших програм*/
+ 168        ods proctitle;
+ 169        /* Видалення посилання на бібліотеку, що б воно не заважало в інших
+ 169      ! програмах */
+ 170        *libname Soroka clear;
+ 171        
+ 172        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 182        

@@ -1,0 +1,1057 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         ods noproctitle;
+ 71         
+ 72         /* start macro variables
+ 72       ! **************************************************************************************************************/
+ 73         /* Step 1.2 */
+ 74         %let id = u64271711;
+ 75         %let sdn = Soroka;
+ 76         /* end macro variables
+ 76       ! **************************************************************************************************************/
+ 77         
+ 78         /* start macro programs
+ 78       ! **************************************************************************************************************/
+ 79         /* Step 4.1 */
+ 80         %macro single_var_mi(inds, var, nimps=1);
+ 81         /* Step 4.2 */
+ 82         proc means data=&inds. noprint;
+ 83             var &var.;
+ 84             output out=&inds._fd_sts mean=mean std=stddev;
+ 85         run;
+ 86         data _null_;
+ 87             set &inds._fd_sts;
+ 88             call symputx("mean_fd_sts", mean);
+ 89             call symputx("stddev_fd_sts", stddev);
+ 90         run;
+ 91         %let imputation_num = 1;
+ 92         data &sdn..imput_var;
+ 93         set _null_;
+ 94         run;
+ 95         %do %while (&nimps >= &imputation_num);
+ 96         /* Step 4.3 */
+ 97         data time_imput_var;
+ 98         set &inds.;
+ 99         imputation = "&imputation_num.";
+ 100        call streaminit(&imputation_num.);
+ 101        if &var. = . then do;
+ 102        do while (&var. <= 0);
+ 103        &var. = rand('NORMAL', &mean_fd_sts, &stddev_fd_sts);
+ 104        end;
+ 105        end;
+ 106        run;
+ 107        /* Step 4.4 */
+ 108        data &sdn..imput_var;
+ 109        length imputation $ 200 &var. 8;
+ 110        set &sdn..imput_var time_imput_var;
+ 111        run;
+ 112        %let imputation_num = %sysevalf(&imputation_num + 1);
+ 113        %end;
+ 114        %mend single_var_mi;
+ 115        /* end macro programs
+ 115      ! **************************************************************************************************************/
+ 116        
+ 117        /* start creating libref
+ 117      ! **************************************************************************************************************/
+ 118        /* Step 1.3 */
+ 119        libname &sdn "/home/&id./InternShip/&sdn._cw9";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/InternShip/Soroka_cw9
+ 120        /* end creating libref
+ 120      ! **************************************************************************************************************/
+ 121        
+ 122        /* start Import *******************************************************************************************************/
+ 123        /* Step 2.1 */
+ 124        option validvarname=v7;
+ 125        proc import datafile="/home/&id./InternShip/&sdn._cw9/train.csv"
+ 126        dbms=csv replace out=train;
+ 127        guessingrows=max;
+ 128        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 129         /**********************************************************************
+ 130         *   PRODUCT:   SAS
+ 131         *   VERSION:   9.4
+ 132         *   CREATOR:   External File Interface
+ 133         *   DATE:      22AUG25
+ 134         *   DESC:      Generated SAS Datastep Code
+ 135         *   TEMPLATE SOURCE:  (None Specified.)
+ 136         ***********************************************************************/
+ 137            data WORK.TRAIN    ;
+ 138            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 139            infile '/home/u64271711/InternShip/Soroka_cw9/train.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 140               informat PassengerId best32. ;
+ 141               informat Survived best32. ;
+ 142               informat Pclass best32. ;
+ 143               informat Name $84. ;
+ 144               informat Sex $6. ;
+ 145               informat Age best32. ;
+ 146               informat SibSp best32. ;
+ 147               informat Parch best32. ;
+ 148               informat Ticket $18. ;
+ 149               informat Fare best32. ;
+ 150               informat Cabin $15. ;
+ 151               informat Embarked $1. ;
+ 152               format PassengerId best12. ;
+ 153               format Survived best12. ;
+ 154               format Pclass best12. ;
+ 155               format Name $84. ;
+ 156               format Sex $6. ;
+ 157               format Age best12. ;
+ 158               format SibSp best12. ;
+ 159               format Parch best12. ;
+ 160               format Ticket $18. ;
+ 161               format Fare best12. ;
+ 162               format Cabin $15. ;
+ 163               format Embarked $1. ;
+ 164            input
+ 165                        PassengerId
+ 166                        Survived
+ 167                        Pclass
+ 168                        Name  $
+ 169                        Sex  $
+ 170                        Age
+ 171                        SibSp
+ 172                        Parch
+ 173                        Ticket  $
+ 174                        Fare
+ 175                        Cabin  $
+ 176                        Embarked  $
+ 177            ;
+ 178            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 179            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw9/train.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw9/train.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=21, серпня 2025 14:59:48,
+       File Size (bytes)=61194
+ 
+ NOTE: 891 records were read from the infile '/home/u64271711/InternShip/Soroka_cw9/train.csv'.
+       The minimum record length was 48.
+       The maximum record length was 127.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              10578.78k
+       OS Memory           29980.00k
+       Timestamp           22.08.2025 03:56:45 пп
+       Step Count                        24  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     226
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 891 rows created in WORK.TRAIN from /home/u64271711/InternShip/Soroka_cw9/train.csv.
+   
+   
+   
+ NOTE: WORK.TRAIN data set was successfully created.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.30 seconds
+       user cpu time       0.28 seconds
+       system cpu time     0.01 seconds
+       memory              10578.78k
+       OS Memory           30240.00k
+       Timestamp           22.08.2025 03:56:45 пп
+       Step Count                        24  Switch Count  8
+       Page Faults                       0
+       Page Reclaims                     2989
+       Page Swaps                        0
+       Voluntary Context Switches        97
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           616
+       
+ 
+ 180        /* end Import *******************************************************************************************************/
+ 181        
+ 182        /* start counting
+ 182      ! *******************************************************************************************************/
+ 183        /* Step 2.2 */
+ 184        proc sql noprint;
+ 185        select count(*) into :total
+ 186        from train;
+ 187        select sum(missing(age)) into :missing
+ 188        from train;
+ 189        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              5811.43k
+       OS Memory           29612.00k
+       Timestamp           22.08.2025 03:56:45 пп
+       Step Count                        25  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     105
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 190        %let percent = %sysevalf((&missing/&total)*100);
+ 191        /* Step 2.3 */
+ 192        proc means data=train noprint;
+ 193            var Age;
+ 194            output out=stats mean=mean std=stddev;
+ 195        run;
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.STATS has 1 observations and 4 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              7248.59k
+       OS Memory           30928.00k
+       Timestamp           22.08.2025 03:56:45 пп
+       Step Count                        26  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1745
+       Page Swaps                        0
+       Voluntary Context Switches        30
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 196        data _null_;
+ 197            set stats;
+ 198            call symputx("mean", mean);
+ 199            call symputx("stddev", stddev);
+ 200        run;
+ 
+ NOTE: There were 1 observations read from the data set WORK.STATS.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              744.18k
+       OS Memory           24488.00k
+       Timestamp           22.08.2025 03:56:45 пп
+       Step Count                        27  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     57
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           8
+       
+ 
+ 201        /* end counting *******************************************************************************************************/
+ 202        
+ 203        /* start histogram
+ 203      ! *******************************************************************************************************/
+ 204        /* Step 2.4 */
+ 205        ods select Histogram;
+ 206        proc univariate data=train;
+ 207        var age;
+ 208        histogram age / normal;
+ 209        run;
+ 
+ NOTE: PROCEDURE UNIVARIATE used (Total process time):
+       real time           2.13 seconds
+       user cpu time       0.06 seconds
+       system cpu time     0.00 seconds
+       memory              14520.93k
+       OS Memory           37124.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        28  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     3697
+       Page Swaps                        0
+       Voluntary Context Switches        940
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           504
+       
+ 
+ 210        ods select all;
+ 211        /* end histogram *******************************************************************************************************/
+ 212        
+ 213        /* start first imputation
+ 213      ! *******************************************************************************************************/
+ 214        /* Step 3.1 */
+ 215        data train_f;
+ 216        set train;
+ 217        imputation = '1';
+ 218        call streaminit(2025);
+ 219        if age = . then do;
+ 220        do while (age <= 0);
+ 221        age = rand('NORMAL', &mean, &stddev);
+ 222        end;
+ 223        end;
+ 224        run;
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TRAIN_F has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1228.84k
+       OS Memory           36268.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        29  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     195
+       Page Swaps                        0
+       Voluntary Context Switches        18
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 225        /* Step 3.2 */
+ 226        ods select Histogram;
+ 227        proc univariate data=train_f;
+ 228        var age;
+ 229        histogram age / normal;
+ 230        run;
+ 
+ NOTE: PROCEDURE UNIVARIATE used (Total process time):
+       real time           0.14 seconds
+       user cpu time       0.04 seconds
+       system cpu time     0.00 seconds
+       memory              7518.43k
+       OS Memory           37892.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        30  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     802
+       Page Swaps                        0
+       Voluntary Context Switches        781
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           208
+       
+ 
+ 231        ods select all;
+ 232        /* end first imputation
+ 232      ! *******************************************************************************************************/
+ 233        
+ 234        /* start testing the null hypothesis H_0
+ 234      ! *******************************************************************************************************/
+ 235        /* Step 5.1 */
+ 236        %single_var_mi(train, age, nimps=5);
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TRAIN_FD_STS has 1 observations and 4 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              7240.93k
+       OS Memory           42192.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        31  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1701
+       Page Swaps                        0
+       Voluntary Context Switches        32
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 1 observations read from the data set WORK.TRAIN_FD_STS.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              745.75k
+       OS Memory           35752.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        32  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     57
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 
+ NOTE: The data set SOROKA.IMPUT_VAR has 0 observations and 0 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              556.87k
+       OS Memory           35492.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        33  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     24
+       Page Swaps                        0
+       Voluntary Context Switches        33
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           160
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TIME_IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1229.59k
+       OS Memory           36012.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        34  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 
+ NOTE: There were 0 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: There were 891 observations read from the data set WORK.TIME_IMPUT_VAR.
+ NOTE: The data set SOROKA.IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1608.03k
+       OS Memory           36524.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        35  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     172
+       Page Swaps                        0
+       Voluntary Context Switches        56
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TIME_IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1229.43k
+       OS Memory           36524.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        36  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: There were 891 observations read from the data set WORK.TIME_IMPUT_VAR.
+ NOTE: The data set SOROKA.IMPUT_VAR has 1782 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2398.68k
+       OS Memory           37680.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        37  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     285
+       Page Swaps                        0
+       Voluntary Context Switches        73
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1544
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TIME_IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1229.59k
+       OS Memory           37036.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        38  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 
+ NOTE: There were 1782 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: There were 891 observations read from the data set WORK.TIME_IMPUT_VAR.
+ NOTE: The data set SOROKA.IMPUT_VAR has 2673 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              3071.06k
+       OS Memory           38576.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        39  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     362
+       Page Swaps                        0
+       Voluntary Context Switches        99
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           2056
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TIME_IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1229.37k
+       OS Memory           37036.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        40  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 
+ NOTE: There were 2673 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: There were 891 observations read from the data set WORK.TIME_IMPUT_VAR.
+ NOTE: The data set SOROKA.IMPUT_VAR has 3564 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              3615.09k
+       OS Memory           39344.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        41  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     492
+       Page Swaps                        0
+       Voluntary Context Switches        43
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           2824
+       
+ 
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: The data set WORK.TIME_IMPUT_VAR has 891 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1229.43k
+       OS Memory           37036.00k
+       Timestamp           22.08.2025 03:56:47 пп
+       Step Count                        42  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 
+ NOTE: There were 3564 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: There were 891 observations read from the data set WORK.TIME_IMPUT_VAR.
+ NOTE: The data set SOROKA.IMPUT_VAR has 4455 observations and 13 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              4047.71k
+       OS Memory           40112.00k
+       Timestamp           22.08.2025 03:56:48 пп
+       Step Count                        43  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     597
+       Page Swaps                        0
+       Voluntary Context Switches        74
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           3592
+       
+ 
+ 237        /* Step 5.2 */
+ 238        ods output ttests=tt_raw;
+ 239        proc ttest data=&sdn..imput_var h0=30;
+ 240            by imputation;
+ 241            var Age;
+ 242        run;
+ 
+ NOTE: The data set WORK.TT_RAW has 5 observations and 5 variables.
+ NOTE: PROCEDURE TTEST used (Total process time):
+       real time           1.47 seconds
+       user cpu time       0.57 seconds
+       system cpu time     0.12 seconds
+       memory              13050.87k
+       OS Memory           45012.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        44  Switch Count  122
+       Page Faults                       0
+       Page Reclaims                     67394
+       Page Swaps                        0
+       Voluntary Context Switches        3257
+       Involuntary Context Switches      18
+       Block Input Operations            0
+       Block Output Operations           8856
+       
+ 
+ 243        ods output close;
+ 244        data &sdn..ttest_result(drop=df probt tvalue);
+ 245        length imputation $ 200 variable $ 200
+ 246        t_statistic $ 200 p $ 200;
+ 247        set tt_raw;
+ 248        imputation = imputation;
+ 249        variable = propcase(variable);
+ 250        p = left(put(round(probt, 0.001), best12.));
+ 251        t_statistic = left(put(round(tvalue, 0.001), best12.));
+ 252        run;
+ 
+ NOTE: There were 5 observations read from the data set WORK.TT_RAW.
+ NOTE: The data set SOROKA.TTEST_RESULT has 5 observations and 4 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              976.84k
+       OS Memory           37808.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        45  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     129
+       Page Swaps                        0
+       Voluntary Context Switches        39
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 253        /* Step 5.3 */
+ 254        %put NOTE: missing=&missing;
+ NOTE: missing=     177
+ 255        %put NOTE: total=&total;
+ NOTE: total=     891
+ 256        %put NOTE: percent=&percent;
+ NOTE: percent=19.865319865319
+ 257        %put NOTE: mean=&mean;
+ NOTE: mean=29.699117647
+ 258        %put NOTE: stddev=&stddev;
+ NOTE: stddev=14.526497332
+ 259        /* end testing the null hypothesis H_0
+ 259      ! *******************************************************************************************************/
+ 260        
+ 261        /* start export *******************************************************************************************************/
+ 262        /* Step 6 */
+ 263        proc export data=&sdn..imput_var
+ 264            outfile="/home/&id./InternShip/&sdn._cw9/imput_var.csv"
+ 265            dbms=csv replace;
+ 266            putnames=yes;
+ 267        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 268         /**********************************************************************
+ 269         *   PRODUCT:   SAS
+ 270         *   VERSION:   9.4
+ 271         *   CREATOR:   External File Interface
+ 272         *   DATE:      22AUG25
+ 273         *   DESC:      Generated SAS Datastep Code
+ 274         *   TEMPLATE SOURCE:  (None Specified.)
+ 275         ***********************************************************************/
+ 276            data _null_;
+ 277            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 278            %let _EFIREC_ = 0;     /* clear export record count macro variable */
+ 279            file '/home/u64271711/InternShip/Soroka_cw9/imput_var.csv' delimiter=',' DSD DROPOVER lrecl=32767;
+ 280            if _n_ = 1 then        /* write column names or labels */
+ 281             do;
+ 282               put
+ 283                  "imputation"
+ 284               ','
+ 285                  "age"
+ 286               ','
+ 287                  "PassengerId"
+ 288               ','
+ 289                  "Survived"
+ 290               ','
+ 291                  "Pclass"
+ 292               ','
+ 293                  "Name"
+ 294               ','
+ 295                  "Sex"
+ 296               ','
+ 297                  "SibSp"
+ 298               ','
+ 299                  "Parch"
+ 300               ','
+ 301                  "Ticket"
+ 302               ','
+ 303                  "Fare"
+ 304               ','
+ 305                  "Cabin"
+ 306               ','
+ 307                  "Embarked"
+ 308               ;
+ 309             end;
+ 310           set  SOROKA.IMPUT_VAR   end=EFIEOD;
+ 311               format imputation $200. ;
+ 312               format age best12. ;
+ 313               format PassengerId best12. ;
+ 314               format Survived best12. ;
+ 315               format Pclass best12. ;
+ 316               format Name $84. ;
+ 317               format Sex $6. ;
+ 318               format SibSp best12. ;
+ 319               format Parch best12. ;
+ 320               format Ticket $18. ;
+ 321               format Fare best12. ;
+ 322               format Cabin $15. ;
+ 323               format Embarked $1. ;
+ 324             do;
+ 325               EFIOUT + 1;
+ 326               put imputation $ @;
+ 327               put age @;
+ 328               put PassengerId @;
+ 329               put Survived @;
+ 330               put Pclass @;
+ 331               put Name $ @;
+ 332               put Sex $ @;
+ 333               put SibSp @;
+ 334               put Parch @;
+ 335               put Ticket $ @;
+ 336               put Fare @;
+ 337               put Cabin $ @;
+ 338               put Embarked $ ;
+ 339               ;
+ 340             end;
+ 341            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 342            if EFIEOD then call symputx('_EFIREC_',EFIOUT);
+ 343            run;
+ 
+ NOTE: The file '/home/u64271711/InternShip/Soroka_cw9/imput_var.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw9/imput_var.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=22, серпня 2025 18:56:49
+ 
+ NOTE: 4456 records were written to the file '/home/u64271711/InternShip/Soroka_cw9/imput_var.csv'.
+       The minimum record length was 52.
+       The maximum record length was 129.
+ NOTE: There were 4455 observations read from the data set SOROKA.IMPUT_VAR.
+ NOTE: DATA statement used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              11448.40k
+       OS Memory           43556.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        46  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     234
+       Page Swaps                        0
+       Voluntary Context Switches        24
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           640
+       
+ 
+ 4455 records created in /home/u64271711/InternShip/Soroka_cw9/imput_var.csv from SOROKA.IMPUT_VAR.
+   
+   
+ NOTE: "/home/u64271711/InternShip/Soroka_cw9/imput_var.csv" file was successfully created.
+ NOTE: PROCEDURE EXPORT used (Total process time):
+       real time           0.05 seconds
+       user cpu time       0.03 seconds
+       system cpu time     0.02 seconds
+       memory              11448.40k
+       OS Memory           43816.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        46  Switch Count  8
+       Page Faults                       0
+       Page Reclaims                     1549
+       Page Swaps                        0
+       Voluntary Context Switches        102
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           664
+       
+ 
+ 344        proc export data=&sdn..ttest_result
+ 345            outfile="/home/&id./InternShip/&sdn._cw9/ttest_result.csv"
+ 346            dbms=csv replace;
+ 347            putnames=yes;
+ 348        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 349         /**********************************************************************
+ 350         *   PRODUCT:   SAS
+ 351         *   VERSION:   9.4
+ 352         *   CREATOR:   External File Interface
+ 353         *   DATE:      22AUG25
+ 354         *   DESC:      Generated SAS Datastep Code
+ 355         *   TEMPLATE SOURCE:  (None Specified.)
+ 356         ***********************************************************************/
+ 357            data _null_;
+ 358            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 359            %let _EFIREC_ = 0;     /* clear export record count macro variable */
+ 360            file '/home/u64271711/InternShip/Soroka_cw9/ttest_result.csv' delimiter=',' DSD DROPOVER lrecl=32767;
+ 361            if _n_ = 1 then        /* write column names or labels */
+ 362             do;
+ 363               put
+ 364                  "imputation"
+ 365               ','
+ 366                  "variable"
+ 367               ','
+ 368                  "t_statistic"
+ 369               ','
+ 370                  "p"
+ 371               ;
+ 372             end;
+ 373           set  SOROKA.TTEST_RESULT   end=EFIEOD;
+ 374               format imputation $200. ;
+ 375               format variable $200. ;
+ 376               format t_statistic $200. ;
+ 377               format p $200. ;
+ 378             do;
+ 379               EFIOUT + 1;
+ 380               put imputation $ @;
+ 381               put variable $ @;
+ 382               put t_statistic $ @;
+ 383               put p $ ;
+ 384               ;
+ 385             end;
+ 386            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 387            if EFIEOD then call symputx('_EFIREC_',EFIOUT);
+ 388            run;
+ 
+ NOTE: The file '/home/u64271711/InternShip/Soroka_cw9/ttest_result.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw9/ttest_result.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=22, серпня 2025 18:56:49
+ 
+ NOTE: 6 records were written to the file '/home/u64271711/InternShip/Soroka_cw9/ttest_result.csv'.
+       The minimum record length was 16.
+       The maximum record length was 33.
+ NOTE: There were 5 observations read from the data set SOROKA.TTEST_RESULT.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9323.84k
+       OS Memory           42788.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        47  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     26
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           8
+       
+ 
+ 5 records created in /home/u64271711/InternShip/Soroka_cw9/ttest_result.csv from SOROKA.TTEST_RESULT.
+   
+   
+ NOTE: "/home/u64271711/InternShip/Soroka_cw9/ttest_result.csv" file was successfully created.
+ NOTE: PROCEDURE EXPORT used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              9323.84k
+       OS Memory           43048.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        47  Switch Count  8
+       Page Faults                       0
+       Page Reclaims                     815
+       Page Swaps                        0
+       Voluntary Context Switches        96
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           24
+       
+ 
+ 389        /* end export *******************************************************************************************************/
+ 390        
+ 391        /* start multiple imputation with PROC MI
+ 391      ! *******************************************************************************************************/
+ 392        /* Step 7.1 */
+ 393        proc mi data=train nimpute=5 seed=2025 out=mi_out;
+ 394            var Age Fare;
+ 395            fcs reg;
+ 396        run;
+ 
+ NOTE: The data set WORK.MI_OUT has 4455 observations and 13 variables.
+ NOTE: PROCEDURE MI used (Total process time):
+       real time           0.10 seconds
+       user cpu time       0.07 seconds
+       system cpu time     0.01 seconds
+       memory              5851.31k
+       OS Memory           42732.00k
+       Timestamp           22.08.2025 03:56:49 пп
+       Step Count                        48  Switch Count  30
+       Page Faults                       0
+       Page Reclaims                     1022
+       Page Swaps                        0
+       Voluntary Context Switches        204
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           5600
+       
+ 
+ 397        ods output ttests=tt_mi_raw;
+ 398        proc ttest data=mi_out h0=30;
+ 399            by _Imputation_;
+ 400            var Age;
+ 401        run;
+ 
+ NOTE: The data set WORK.TT_MI_RAW has 5 observations and 5 variables.
+ NOTE: PROCEDURE TTEST used (Total process time):
+       real time           1.17 seconds
+       user cpu time       0.55 seconds
+       system cpu time     0.12 seconds
+       memory              11327.28k
+       OS Memory           45656.00k
+       Timestamp           22.08.2025 03:56:50 пп
+       Step Count                        49  Switch Count  122
+       Page Faults                       0
+       Page Reclaims                     66905
+       Page Swaps                        0
+       Voluntary Context Switches        3312
+       Involuntary Context Switches      19
+       Block Input Operations            0
+       Block Output Operations           8472
+       
+ 
+ 402        ods output close;
+ 403        proc means data=mi_out nway noprint;
+ 404            class _Imputation_;
+ 405            var Age;
+ 406            output out=mean_imp mean=mean_age std=std_age n=n_age;
+ 407        run;
+ 
+ NOTE: There were 4455 observations read from the data set WORK.MI_OUT.
+ NOTE: The data set WORK.MEAN_IMP has 5 observations and 6 variables.
+ NOTE: PROCEDURE MEANS used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              10119.12k
+       OS Memory           44616.00k
+       Timestamp           22.08.2025 03:56:50 пп
+       Step Count                        50  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     1739
+       Page Swaps                        0
+       Voluntary Context Switches        23
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 408        data mean_imp2;
+ 409            set mean_imp;
+ 410            where _TYPE_=1;
+ 411            stderr_age = std_age / sqrt(n_age);
+ 412            keep _Imputation_ mean_age stderr_age;
+ 413        run;
+ 
+ NOTE: There were 5 observations read from the data set WORK.MEAN_IMP.
+       WHERE _TYPE_=1;
+ NOTE: The data set WORK.MEAN_IMP2 has 5 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              977.93k
+       OS Memory           38836.00k
+       Timestamp           22.08.2025 03:56:50 пп
+       Step Count                        51  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 414        /* Step 7.2 */
+ 415        ods output ParameterEstimates=mi_estimates;
+ 416        proc mianalyze data=mean_imp2;
+ 417            modeleffects mean_age;
+ 418            stderr stderr_age;
+ 419        run;
+ 
+ NOTE: The data set WORK.MI_ESTIMATES has 1 observations and 12 variables.
+ NOTE: PROCEDURE MIANALYZE used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              1128.28k
+       OS Memory           38836.00k
+       Timestamp           22.08.2025 03:56:50 пп
+       Step Count                        52  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     122
+       Page Swaps                        0
+       Voluntary Context Switches        14
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 420        ods output close;
+ 421        /*
+ 422        there are no statistically significant deviations from the hypothetical 30-year average
+ 423        */
+ 424        /* end multiple imputation with PROC MI
+ 424      ! *******************************************************************************************************/
+ 425        
+ 426        ods proctitle;
+ 427        
+ 428        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 438        

@@ -1,0 +1,729 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         ods noproctitle;
+ 71         
+ 72         /* start macro variables
+ 72       ! **************************************************************************************************************/
+ 73         %let id = u64271711;
+ 74         %let sdn = Soroka;
+ 75         /* end macro variables
+ 75       ! **************************************************************************************************************/
+ 76         
+ 77         /* start macro programs
+ 77       ! *******************************************************************************************************/
+ 78         %macro crt_log(mytab, var_arr, out_data);
+ 79         ods exclude all;
+ 80         proc logistic data=&mytab.;
+ 81            model survived(event="1") = &var_arr;
+ 82            ods output ParameterEstimates = &out_data.;
+ 83         run;
+ 84         %mend;
+ 85         /* end macro programs
+ 85       ! *******************************************************************************************************/
+ 86         
+ 87         /* start creating libref
+ 87       ! **************************************************************************************************************/
+ 88         libname &sdn "/home/&id./InternShip/&sdn._cw8";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/InternShip/Soroka_cw8
+ 89         /* end creating libref
+ 89       ! **************************************************************************************************************/
+ 90         
+ 91         /* start Import *******************************************************************************************************/
+ 92         option validvarname=v7;
+ 93         proc import datafile="/home/u64271711/InternShip/Soroka_cw7/titanic.csv"
+ 94         dbms=csv replace out=titanic;
+ 95         guessingrows=max;
+ 96         run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 97          /**********************************************************************
+ 98          *   PRODUCT:   SAS
+ 99          *   VERSION:   9.4
+ 100         *   CREATOR:   External File Interface
+ 101         *   DATE:      20AUG25
+ 102         *   DESC:      Generated SAS Datastep Code
+ 103         *   TEMPLATE SOURCE:  (None Specified.)
+ 104         ***********************************************************************/
+ 105            data WORK.TITANIC    ;
+ 106            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 107            infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 108               informat Name $84. ;
+ 109               informat Age best32. ;
+ 110               informat Gender $6. ;
+ 111               informat Class best32. ;
+ 112               informat Fare best32. ;
+ 113               informat Survived best32. ;
+ 114               format Name $84. ;
+ 115               format Age best12. ;
+ 116               format Gender $6. ;
+ 117               format Class best12. ;
+ 118               format Fare best12. ;
+ 119               format Survived best12. ;
+ 120            input
+ 121                        Name  $
+ 122                        Age
+ 123                        Gender  $
+ 124                        Class
+ 125                        Fare
+ 126                        Survived
+ 127            ;
+ 128            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 129            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw7/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=14, серпня 2025 13:13:06,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile '/home/u64271711/InternShip/Soroka_cw7/titanic.csv'.
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              10564.12k
+       OS Memory           29980.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        24  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     228
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 1309 rows created in WORK.TITANIC from /home/u64271711/InternShip/Soroka_cw7/titanic.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC data set was successfully created.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.29 seconds
+       user cpu time       0.27 seconds
+       system cpu time     0.01 seconds
+       memory              10564.12k
+       OS Memory           30240.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        24  Switch Count  8
+       Page Faults                       0
+       Page Reclaims                     2998
+       Page Swaps                        0
+       Voluntary Context Switches        103
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           616
+       
+ 
+ 130        /* end Import *******************************************************************************************************/
+ 131        
+ 132        /* start editing data
+ 132      ! *******************************************************************************************************/
+ 133        data Titanic1 Titanic2;
+ 134        set titanic;
+ 135        if gender ^= '' then do;
+ 136        if gender = "female" then sex = 1;
+ 137        else if gender = "male" then sex = 2;
+ 138        end;
+ 139        call streaminit(2024);
+ 140        if rand("Uniform") < 0.15 then fare = .;
+ 141        call streaminit(2025);
+ 142        if rand("Uniform") < 0.2 then class = .;
+ 143        call streaminit(2026);
+ 144        if rand("Uniform") < 0.25 then sex = .;
+ 145        if mod(_n_, 2) then output Titanic1;
+ 146        else output Titanic2;
+ 147        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC1 has 655 observations and 7 variables.
+ NOTE: The data set WORK.TITANIC2 has 654 observations and 7 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1458.43k
+       OS Memory           25008.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        25  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     196
+       Page Swaps                        0
+       Voluntary Context Switches        23
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 148        /* end editing data
+ 148      ! *******************************************************************************************************/
+ 149        
+ 150        /* start creating data sets
+ 150      ! *******************************************************************************************************/
+ 151        %crt_log(Titanic1, class sex age fare, out1111);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1111 has 5 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.01 seconds
+       memory              2715.15k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        26  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     560
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           304
+       
+ 
+ 152        %crt_log(Titanic1, class sex age, out1110);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1110 has 4 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2462.84k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        27  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     252
+       Page Swaps                        0
+       Voluntary Context Switches        20
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 153        %crt_log(Titanic1, class sex fare, out1101);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1101 has 4 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2465.21k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        28  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     252
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           312
+       
+ 
+ 154        %crt_log(Titanic1, class age fare, out1011);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1011 has 4 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2462.62k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        29  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     254
+       Page Swaps                        0
+       Voluntary Context Switches        23
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 155        %crt_log(Titanic1, sex age fare, out0111);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0111 has 4 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              2469.46k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        30  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 156        %crt_log(Titanic1, class sex, out1100);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1100 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2460.00k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        31  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     253
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 157        %crt_log(Titanic1, class age, out1010);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1010 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2463.90k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        32  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           304
+       
+ 
+ 158        %crt_log(Titanic1, sex age, out0110);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0110 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2455.21k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        33  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 159        %crt_log(Titanic1, class fare, out1001);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1001 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2458.71k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        34  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 160        %crt_log(Titanic1, sex fare, out0101);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0101 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              2463.15k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        35  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        22
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 161        %crt_log(Titanic1, age fare, out0011);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0011 has 3 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2462.90k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        36  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           304
+       
+ 
+ 162        %crt_log(Titanic1, class, out1000);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT1000 has 2 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2464.84k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        37  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     251
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 163        %crt_log(Titanic1, sex, out0100);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0100 has 2 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2455.62k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        38  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 164        %crt_log(Titanic1, age, out0010);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0010 has 2 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2464.15k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        39  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     250
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 165        %crt_log(Titanic1, fare, out0001);
+ NOTE: PROC LOGISTIC is modeling the probability that Survived='1'.
+ NOTE: Convergence criterion (GCONV=1E-8) satisfied.
+ NOTE: The data set WORK.OUT0001 has 2 observations and 7 variables.
+ NOTE: There were 655 observations read from the data set WORK.TITANIC1.
+ NOTE: PROCEDURE LOGISTIC used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2459.93k
+       OS Memory           26044.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        40  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     252
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           304
+       
+ 
+ 166        /* end creating data sets
+ 166      ! *******************************************************************************************************/
+ 167        
+ 168        /* start creating function
+ 168      ! *******************************************************************************************************/
+ 169        option CMPLIB=_null_;
+ 170        proc fcmp outlib=work.funcs.logit;
+ 171        function p_survive(class, sex, age, fare);
+ 172        /* out1111 */
+ 173        if not missing(class) and not missing(sex) and not missing(age) and not missing(fare) then do;
+ 174        Intercept = 7.800;
+ 175        class_Est = -1.330;
+ 176        sex_Est = -2.720;
+ 177        age_Est = -0.031;
+ 178        fare_Est = -0.003;
+ 179        prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + age_Est*age + fare_Est*fare)));
+ 180        return(prob);
+ 181        end;
+ 182        /* out1110 */
+ 183        else if not missing(class) and not missing(sex) and not missing(age) then do;
+ 184        Intercept = 7.132;
+ 185        class_Est = -1.188;
+ 186            sex_Est = -2.506;
+ 187        age_Est = -0.031;
+ 188        prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + age_Est*age)));
+ 189        return(prob);
+ 190        end;
+ 191        /* out1101 */
+ 192        else if not missing(class) and not missing(sex) and not missing(fare) then do;
+ 193        Intercept = 6.162;
+ 194        class_Est = -1.032;
+ 195        sex_Est = -2.676;
+ 196        fare_Est = -0.003;
+ 197        prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex + fare_Est*fare)));
+ 198        return(prob);
+ 199        end;
+ 200        /* out1011 */
+ 201        else if not missing(class) and not missing(age) and not missing(fare) then do;
+ 202        Intercept = 2.835;
+ 203        class_Est = -1.013;
+ 204        age_Est = -0.037;
+ 205        fare_Est = 0.004;
+ 206        prob = 1 / (1 + exp(-(Intercept + class_Est*class + age_Est*age + fare_Est*fare)));
+ 207        return(prob);
+ 208        end;
+ 209        /* out0111 */
+ 210        else if not missing(sex) and not missing(age) and not missing(fare) then do;
+ 211        Intercept = 3.671;
+ 212        sex_Est = -2.573;
+ 213        age_Est = -0.007;
+ 214        fare_Est = 0.006;
+ 215        prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + age_Est*age + fare_Est*fare)));
+ 216        return(prob);
+ 217        end;
+ 218        /* out1100 */
+ 219        else if not missing(class) and not missing(sex) then do;
+ 220        Intercept = 5.439;
+ 221        class_Est = -0.869;
+ 222        sex_Est = -2.444;
+ 223        prob = 1 / (1 + exp(-(Intercept + class_Est*class + sex_Est*sex)));
+ 224        return(prob);
+ 225        end;
+ 226        /* out1010 */
+ 227        else if not missing(class) and not missing(age) then do;
+ 228        Intercept = 3.144;
+ 229        class_Est = -1.122;
+ 230        age_Est = -0.034;
+ 231        prob = 1 / (1 + exp(-(Intercept + class_Est*class + age_Est*age)));
+ 232        return(prob);
+ 233        end;
+ 234        /* out0110 */
+ 235        else if not missing(sex) and not missing(age) then do;
+ 236        Intercept = 3.649;
+ 237        sex_Est = -2.499;
+ 238        age_Est = -0.002;
+ 239        prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + age_Est*age)));
+ 240        return(prob);
+ 241        end;
+ 242        /* out1001 */
+ 243        else if not missing(class) and not missing(fare) then do;
+ 244        Intercept = 1.057;
+ 245        class_Est = -0.727;
+ 246        fare_Est = 0.003;
+ 247        prob = 1 / (1 + exp(-(Intercept + class_Est*class + fare_Est*fare)));
+ 248        return(prob);
+ 249        end;
+ 250        /* out0101 */
+ 251        else if not missing(sex) and not missing(fare) then do;
+ 252        Intercept = 3.069;
+ 253        sex_Est = -2.420;
+ 254        fare_Est = 0.006;
+ 255        prob = 1 / (1 + exp(-(Intercept + sex_Est*sex + fare_Est*fare)));
+ 256        return(prob);
+ 257        end;
+ 258        /* out0011 */
+ 259        else if not missing(age) and not missing(fare) then do;
+ 260        Intercept = -0.205;
+ 261        age_Est = -0.018;
+ 262        fare_Est = 0.010;
+ 263        prob = 1 / (1 + exp(-(Intercept + age_Est*age + fare_Est*fare)));
+ 264        return(prob);
+ 265        end;
+ 266        /* out1000 */
+ 267        else if not missing(class) then do;
+ 268        Intercept = 1.406;
+ 269        class_Est = -0.824;
+ 270        prob = 1 / (1 + exp(-(Intercept + class_Est*class)));
+ 271        return(prob);
+ 272        end;
+ 273        /* out0100 */
+ 274        else if not missing(sex) then do;
+ 275        Intercept = 3.258;
+ 276        sex_Est = -2.371;
+ 277        prob = 1 / (1 + exp(-(Intercept + sex_Est*sex)));
+ 278        return(prob);
+ 279        end;
+ 280        /* out0010 */
+ 281        else if not missing(age) then do;
+ 282        Intercept = -0.150;
+ 283        age_Est = -0.007;
+ 284        prob = 1 / (1 + exp(-(Intercept + age_Est*age)));
+ 285        return(prob);
+ 286        end;
+ 287        /* out0001 */
+ 288        else if not missing(fare) then do;
+ 289        Intercept = -0.827;
+ 290        fare_Est = 0.010;
+ 291        prob = 1 / (1 + exp(-(Intercept + fare_Est*fare)));
+ 292        return(prob);
+ 293        end;
+ 294        else do;
+ 295        return(.);
+ 296        end;
+ 297        endsub;
+ 298        run;
+ 
+ NOTE: Function p_survive saved to work.funcs.logit.
+ NOTE: PROCEDURE FCMP used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1874.75k
+       OS Memory           25128.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        41  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     455
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           928
+       
+ 
+ 299        /* end creating function
+ 299      ! *******************************************************************************************************/
+ 300        
+ 301        /* start creating P_Titanic
+ 301      ! *******************************************************************************************************/
+ 302        option cmplib=work.funcs;
+ 303        data &sdn..P_Titanic;
+ 304        set Titanic2;
+ 305        if p_survive(class, sex, age, fare) = . then p_survive = .;
+ 306        else if p_survive(class, sex, age, fare) >= 0.5 then p_survive = 1;
+ 307        else p_survive = 0;
+ 308        run;
+ 
+ NOTE: There were 654 observations read from the data set WORK.TITANIC2.
+ NOTE: The data set SOROKA.P_TITANIC has 654 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              2855.15k
+       OS Memory           26028.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        42  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     854
+       Page Swaps                        0
+       Voluntary Context Switches        44
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           296
+       
+ 
+ 309        /* start creating P_Titanic
+ 309      ! *******************************************************************************************************/
+ 310        
+ 311        /* start Analyze *******************************************************************************************************/
+ 312        ods exclude none;
+ 313        proc freq data=&sdn..P_Titanic;
+ 314        table p_survive*survived;
+ 315        run;
+ 
+ NOTE: There were 654 observations read from the data set SOROKA.P_TITANIC.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.01 seconds
+       memory              1969.87k
+       OS Memory           26800.00k
+       Timestamp           20.08.2025 06:38:36 дп
+       Step Count                        43  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     434
+       Page Swaps                        0
+       Voluntary Context Switches        37
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 316        /* end Analyze *******************************************************************************************************/
+ 317        
+ 318        /*
+ 319        Accuracy: 76% - The percentage is quite high, compared to the
+ 320        previous attempt of the logistic model, the chance of a correct
+ 321        answer increased by 0.07 - this is a good increase in accuracy, but
+ 322        it cannot be said that this method justifies its use.
+ 323        */
+ 324        
+ 325        ods proctitle;
+ 326        
+ 327        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 337        

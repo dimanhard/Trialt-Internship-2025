@@ -1,0 +1,254 @@
+ods noproctitle;
+
+/* step 1.2 */
+%let id = u64271711;
+%let lsn = Soroka;
+
+/* step 1.3 */
+libname &lsn "/home/&id./InternShip/&lsn./&lsn..sas";
+
+/* step 2.1 */
+options validvarname=v7;
+proc import datafile="/home/&id./InternShip/&lsn./test.csv"
+	 		dbms=csv out=test replace;
+	guessingrows=max;
+run;
+proc import datafile="/home/&id./InternShip/&lsn./titanic.csv"
+	 		dbms=csv out=titanic replace;
+	guessingrows=max;
+run;
+proc import datafile="/home/&id./InternShip/&lsn./titanic3.csv"
+	 		dbms=csv out=titanic3 replace;
+	guessingrows=max;
+run;
+proc import datafile="/home/&id./InternShip/&lsn./train.csv"
+	 		dbms=csv out=train replace;
+	guessingrows=max;
+run;
+
+/* step 2.2 */
+data train_test;
+	set train test;
+	name_nq = compress(name, '"');
+run;
+data titanic;
+	set titanic;
+	name_nq = compress(name, '"');
+run;
+data titanic3;
+	set titanic3;
+	where name is not missing;
+	name_nq = compress(name, '"');
+run;
+
+proc sort data=titanic out=titanic_srt nodupkey ;by name_nq age ;run;
+proc sort data=titanic3 out=titanic3_srt nodupkey ;by name_nq age ;run;
+proc sort data=train_test out=train_test_srt nodupkey ;by name_nq age ;run;
+
+data Titanic_full(drop=name_nq);
+	merge titanic_srt(in=in_main)
+	train_test_srt(keep=PassengerId sibsp parch name_nq age)
+	titanic3_srt(keep=embarked boat body home_dest name_nq age cabin);
+	by name_nq age;
+	if in_main;
+run;
+
+/* step 3.1 */
+data Titanic_full_v1(drop=cabin);
+	set Titanic_full;
+	FamilySize = 1;
+	if sibsp ^= . then FamilySize + sibsp;
+	if parch ^= . then FamilySize + parch;
+	IsAlone = (FamilySize = 1 or FamilySize = .);
+	Title = scan(name, 2, ',.');
+	Deck = substr(cabin, 1, 1);
+run;
+
+/* step 4 */
+proc means data=Titanic_full_v1 noprint;
+	var Age ;
+	output out=Age_med median=med;
+run;
+proc means data=Titanic_full_v1 noprint;
+	var Fare;
+	output out=Fare_med median=med;
+run;
+proc freq data=Titanic_full_v1 order=freq noprint;
+	table embarked / out=embarked_freq;
+run;
+data _NULL_;
+	set Age_med;
+	call symputx('Age_m', med);
+run;
+data _NULL_;
+	set Fare_med;
+	call symputx('Fare_m', med);
+run;
+data _NULL_;
+	set embarked_freq;
+	retain y 1;
+	if y and embarked ^= '' then do;
+		call symputx('embarked_f', embarked);
+		y = 0;
+	end;
+run;
+%put &Age_m &Fare_m &embarked_f;
+
+data Titanic_full_v2;
+	set Titanic_full_v1;
+	/* step 4.1 */
+	if Age = . then Age = &Age_m;
+	if Fare = . then Fare = &Fare_m;
+	if Embarked = '' then Embarked = "&embarked_f";
+	/* step 4.2 */
+	if 0 <= Age <= 12 then AgeGroup = 'Child';
+	else if 13 <= Age <= 18 then AgeGroup = 'Teen';
+	else if 19 <= Age then AgeGroup = 'Adult';
+run;
+
+/* step 4.3 */
+/***************************************************************************************
+when filling in the gaps of numerical values
+with the median, the median value did not change,
+and when filling in the gaps of symbolic values
+with the most popular value, the most popular
+value did not change, which allows you to work
+with these rows with minimal deviation from what 
+is realistically possible. Age groups allow for 
+more precise analysis of data
+***************************************************************************************/
+
+/* step 5.1 */
+proc univariate data=Titanic_full_v2;
+	var Age Fare FamilySize;
+run;
+/* step 5.2 */
+proc freq data=Titanic_full_v2;
+	table Gender class Embarked Title Deck IsAlone AgeGroup FamilySize;
+run;
+
+/* step 5.3 */
+/***************************************************************************************
+	The average age is 29-30 years old, which is quite close to the median, which is 28.
+	The price for tickets is low, as up to 90% of tickets cost less than 79, although the
+price of a pair of tickets reaches more than 500.
+	More than half of the passengers arrived alone, without family or loved ones.
+	2 times more men than women.
+	3rd class passengers more than 1 and 2 combined.
+	embarked type S is colossally larger than the others.
+	adult 85%.
+***************************************************************************************/
+
+/* step 6.1 */
+proc logistic data=Titanic_full_v2 descending;
+	/* step 6.2 */
+	class Gender(ref='male') Class(ref='3') Embarked(ref='S') 
+          AgeGroup(ref='Adult') Title(ref='Mr') Deck(ref='C') / param=ref;
+    model Survived = FamilySize Age Gender Class Embarked AgeGroup Fare IsAlone Title Deck
+    / selection=stepwise slentry=0.05 slstay=0.05;
+run;
+
+/* step 6.3 */
+/***************************************************************************************
+we see that after selecting the variables, only Age Gender Deck remained
+significant, among which Gender was the most influential. A passenger had 
+the greatest chance of survival if he was on Deck E and was a woman. 
+Women had almost 15 times more chance of survival than men
+***************************************************************************************/
+
+/* step 7.1 */
+proc freq data=Titanic_full_v2;
+	tables AgeGroup*Survived FamilySize*Survived Gender*Survived
+	Class*Survived Deck*Survived / plots=freqplot(scale=grouppercent);
+run;
+
+/* step 7.2 */
+/***************************************************************************************
+ child and teen had a better chance of survival than adults.
+ if the passenger was not traveling alone, then the chances 
+of survival decreased as the family size increased.
+ Women had a much better chance of survival.
+ The higher the class number, the lower the chances of survival.
+ deck b d e had a better chance of survival than death.
+***************************************************************************************/
+
+/* step 8 */
+proc sgscatter data=Titanic_full_v2;
+	plot Fare*FamilySize / group=Survived;
+run;
+
+/***************************************************************************************
+ As family size increased, the maximum price for which tickets were purchased decreased.
+ Passengers who bought more expensive tickets almost always survived, compared to 
+those who bought cheaper ones.
+***************************************************************************************/
+
+/* step 9.1 */
+proc surveyselect data=Titanic_full_v2 rate=0.7 outall out=Titanic_full_v3 seed=7444;
+run;
+data Titanic_full_train Titanic_full_test;
+    set Titanic_full_v3;
+    if selected = 1 then output Titanic_full_train;
+    else output Titanic_full_test;
+    drop selected;
+run;
+
+/* step 9.2 */
+proc logistic data=Titanic_full_train descending plots(only)=roc;
+	class Gender(ref='male') Class(ref='3') Embarked(ref='S') 
+          AgeGroup(ref='Adult') Title(ref='Mr') Deck(ref='C') / param=ref;
+    model Survived = FamilySize Age Gender Class Embarked AgeGroup Fare IsAlone Title Deck
+    / selection=stepwise slentry=0.05 slstay=0.05;
+    score data=Titanic_full_test out=Titanic_full_predict;
+run;
+data Titanic_full_predict_v1;
+	set Titanic_full_predict;
+	Predicted_Survived = (p_1 >= 0.5);
+run;
+
+proc freq data=Titanic_full_predict_v1;
+	table Survived*Predicted_Survived / nopercent nocol norow out=predict_res;
+run;
+data _null_;
+	set predict_res;
+	if _n_ = 1 then call symputx('NN', count);
+	else if _n_ = 2 then call symputx('NP', count);
+	else if _n_ = 3 then call symputx('PN', count);
+	else if _n_ = 4 then call symputx('PP', count);
+run;
+data predict_calculating;
+	Accuracy = round((&NN + &PP) / (&NN + &PP + &NP + &PN), 0.01);
+	Recall = round(&PP / (&PP + &PN), 0.01);
+	Precision = round(&PP / (&PP + &NP), 0.01);
+run;
+
+/* step 9.3 */
+/***************************************************************************************
+	Accuracy: 54%, Recall: 89%, Precision: 46%, AUC: 0.79
+	Accuracy = 54% - This means that the percentage of correct
+answers of our model is 54%, although this is not a big advantage in 
+terms of correct answers, but from the mathematical point of view we 
+are at an advantage, because the percentage of correct answers is more 
+than incorrect ones. Of course, you cannot rely on this model.
+	Recall = 89% - This means that the model can predict who will survive quite accurately.
+	Precision = 46% - This means that even with a large past parameter,
+the model is not very good at predicting who will die.
+	AUC = 0.79 - Ideally, this value is equal to 1, but this is only 
+possible in rare cases, and in our case this value is quite high.
+***************************************************************************************/
+
+/* step 10.1 */
+/***************************************************************************************
+	New variables were created to group the broad variables - this helped us to better 
+assess the significance of some variables. Gender Deck Age Class and Fare turned out 
+to be important, some of these variables were ignored by the model as in these cases 
+other circumstances may have had a stronger influence.
+	Gender turned out to be the most important variable, along with age - this can 
+be explained by the fact that women and children are saved first. Also, the set of 
+variables Class, Fare and FamilySize, which are interrelated, together provided a 
+greater chance of survival, provided that the smaller the family (excluding 1-person 
+families) could afford to pay more for a ticket for 1 family member, due to which 
+they had a better class, all of which together increased the chance of survival.
+***************************************************************************************/
+
+ods proctitle;

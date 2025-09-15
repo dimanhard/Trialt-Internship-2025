@@ -1,0 +1,2595 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         ods noproctitle;
+ 71         
+ 72         /* start macro variables
+ 72       ! **************************************************************************************************************/
+ 73         %let id = u64271711;
+ 74         %let sdn = Soroka;
+ 75         /* end macro variables
+ 75       ! **************************************************************************************************************/
+ 76         
+ 77         /* start macro programs
+ 77       ! *******************************************************************************************************/
+ 78         %macro totobs(mydata);
+ 79         %let mydataID=%sysfunc(OPEN(&mydata.,IN));
+ 80         %let NOBS=%sysfunc(ATTRN(&mydataID,NOBS));
+ 81         %let RC=%sysfunc(CLOSE(&mydataID));
+ 82         &NOBS
+ 83         %mend;
+ 84         %macro Grouping_Variable_SC(tab, var);
+ 85         data &tab._S;
+ 86         set &tab.;
+ 87         where survived = 1;
+ 88         run;
+ 89         data &tab._D;
+ 90         set &tab.;
+ 91         where survived = 0;
+ 92         run;
+ 93         proc freq data=&tab._S noprint;
+ 94         table &var.*class / out=S_&var._freq(drop=percent);
+ 95         run;
+ 96         proc freq data=&tab._D noprint;
+ 97         table &var.*class / out=D_&var._freq(drop=percent);
+ 98         run;
+ 99         data S_&var._freq_ch(drop= class count);
+ 100        length &var. $ 200 class_ch $ 200 count_ch $ 200;
+ 101        set S_&var._freq;
+ 102        class_ch = cats(put(class, 1.));
+ 103        count_ch = cats(put(count, 4.));
+ 104        run;
+ 105        data D_&var._freq_ch(drop= class count);
+ 106        length &var. $ 200 class_ch $ 200 count_ch $ 200;
+ 107        set D_&var._freq;
+ 108        class_ch = cats(put(class, 1.));
+ 109        count_ch = cats(put(count, 4.));
+ 110        run;
+ 111        proc sort data=S_&var._freq_ch out=S_&var._sort;
+ 112        by &var. class_ch count_ch;
+ 113        run;
+ 114        proc sort data=D_&var._freq_ch out=D_&var._sort;
+ 115        by &var. class_ch count_ch;
+ 116        run;
+ 117        proc transpose data=S_&var._sort out=S_&var._trans(drop=_name_) prefix=class_;
+ 118        id class_ch;
+ 119        by &var.;
+ 120        var count_ch;
+ 121        run;
+ 122        proc transpose data=D_&var._sort out=D_&var._trans(drop=_name_) prefix=class_;
+ 123        id class_ch;
+ 124        by &var.;
+ 125        var count_ch;
+ 126        run;
+ 127        data S_&var._pre;
+ 128        set S_&var._trans;
+ 129        length var5 $ 200;
+ 130        class_1 = cats(put(max(0, input(class_1, 4.)),4.));
+ 131        class_2 = cats(put(max(0, input(class_2, 4.)),4.));
+ 132        class_3 = cats(put(max(0, input(class_3, 4.)),4.));
+ 133        var5 = cats(put(
+ 134        input(class_1, 4.) +
+ 135        input(class_2, 4.) +
+ 136        input(class_3, 4.) ,
+ 137        4.));
+ 138        rename &var. = var1
+ 139        class_1 = var2
+ 140        class_2 = var3
+ 141        class_3 = var4;
+ 142        run;
+ 143        data D_&var._pre;
+ 144        set D_&var._trans;
+ 145        length var9 $ 200;
+ 146        class_1 = cats(put(max(0, input(class_1, 4.)),4.));
+ 147        class_2 = cats(put(max(0, input(class_2, 4.)),4.));
+ 148        class_3 = cats(put(max(0, input(class_3, 4.)),4.));
+ 149        var9 = cats(put(
+ 150        input(class_1, 4.) +
+ 151        input(class_2, 4.) +
+ 152        input(class_3, 4.) ,
+ 153        4.));
+ 154        rename &var. = var1
+ 155        class_1 = var6
+ 156        class_2 = var7
+ 157        class_3 = var8;
+ 158        run;
+ 159        proc sort data=S_&var._pre out=S_&var._preS;
+ 160        by var1;
+ 161        run;
+ 162        proc sort data=D_&var._pre out=D_&var._preS;
+ 163        by var1;
+ 164        run;
+ 165        data &var._noP(drop=var2_cnt var3_cnt var4_cnt var5_cnt var6_cnt var7_cnt var8_cnt var9_cnt);
+ 166        merge S_&var._preS
+ 167        D_&var._preS;
+ 168        by var1;
+ 169        retain var2_cnt 0 var3_cnt 0 var4_cnt 0
+ 170        var5_cnt 0 var6_cnt 0 var7_cnt 0 var8_cnt 0 var9_cnt 0;
+ 171        var2_cnt + input(var2, 4.);
+ 172        var3_cnt + input(var3, 4.);
+ 173        var4_cnt + input(var4, 4.);
+ 174        var5_cnt + input(var5, 4.);
+ 175        var6_cnt + input(var6, 4.);
+ 176        var7_cnt + input(var7, 4.);
+ 177        var8_cnt + input(var8, 4.);
+ 178        var9_cnt + input(var9, 4.);
+ 179        call symputx('var2_cnt', var2_cnt);
+ 180        call symputx('var3_cnt', var3_cnt);
+ 181        call symputx('var4_cnt', var4_cnt);
+ 182        call symputx('var5_cnt', var5_cnt);
+ 183        call symputx('var6_cnt', var6_cnt);
+ 184        call symputx('var7_cnt', var7_cnt);
+ 185        call symputx('var8_cnt', var8_cnt);
+ 186        call symputx('var9_cnt', var9_cnt);
+ 187        run;
+ 188        data &var._out;
+ 189        set &var._noP;
+ 190        var2 = cats(var2) || ' (' || cats(put(round(input(var2, 5.) / &var2_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 191        var3 = cats(var3) || ' (' || cats(put(round(input(var3, 5.) / &var3_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 192        var4 = cats(var4) || ' (' || cats(put(round(input(var4, 5.) / &var4_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 193        var5 = cats(var5) || ' (' || cats(put(round(input(var5, 5.) / &var5_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 194        var6 = cats(var6) || ' (' || cats(put(round(input(var6, 5.) / &var6_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 195        var7 = cats(var7) || ' (' || cats(put(round(input(var7, 5.) / &var7_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 196        var8 = cats(var8) || ' (' || cats(put(round(input(var8, 5.) / &var8_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 197        var9 = cats(var9) || ' (' || cats(put(round(input(var9, 5.) / &var9_cnt.  * 100, 0.1), 5.1)) || '%)';
+ 198        run;
+ 199        proc sort data=&var._out out= &var._out_s;
+ 200        by var1;
+ 201        run;
+ 202        %mend;
+ 203        /* end macro programs
+ 203      ! *******************************************************************************************************/
+ 204        
+ 205        /* start creating template
+ 205      ! *******************************************************************************************************/
+ 206        proc template;
+ 207        define style intern;
+ 208        parent=styles.rtf;
+ 209        style Table from output /
+ 210        background=_undef_
+ 211        Rules=groups
+ 212        Frame=hsides
+ 213        textalign=center
+ 214        font=("Courier New", 9pt)
+ 215        cellpadding = 0pt
+ 216        cellspacing = 0pt
+ 217        borderwidth = 0.25pt
+ 218        width = 100%
+ 219        asis = on;
+ 220        style fonts from fonts /
+ 221        'docFont' = ("Courier New", 9pt);
+ 222        style rowheader /
+ 223        background=white
+ 224        font=("Courier New", 9pt)
+ 225        asis=on;
+ 226        style header /
+ 227        font=("Courier New", 9pt)
+ 228        textalign=center
+ 229        verticalalign=center
+ 230        asis=on
+ 231        background=white;
+ 232        style systemtitle /
+ 233        font=("Courier New", 9pt);
+ 234        style systemfooter /
+ 235        font=("Courier New", 9pt)
+ 236        asis=on;
+ 237        style data from data /
+ 238        font=("Courier New", 9pt)
+ 239        verticalalign = m
+ 240        asis=on
+ 241        marginbottom = 0.8pt
+ 242        margintop = 1.25pt;
+ 243        replace Body from Document /
+ 244         marginleft=1in
+ 245             marginright=0.6in;
+ 246        end;
+ NOTE: Overwriting existing template/link: Intern
+ NOTE: STYLE 'Intern' has been saved to: WORK.TEMPLAT
+ 247        run;
+ NOTE: PROCEDURE TEMPLATE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              383.46k
+       OS Memory           32164.00k
+       Timestamp           26.08.2025 06:16:53 пп
+       Step Count                        4533  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     18
+       Page Swaps                        0
+       Voluntary Context Switches        7
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           0
+       
+ 
+ 248        /* end creating template
+ 248      ! *******************************************************************************************************/
+ 249        
+ 250        /* start Create libref
+ 250      ! *******************************************************************************************************/
+ 251        libname Soroka "/home/&id./InternShip/&sdn._cw10";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/InternShip/Soroka_cw10
+ 252        /* end Create libref
+ 252      ! *******************************************************************************************************/
+ 253        
+ 254        /* start Import *******************************************************************************************************/
+ 255        options validvarname=v7;
+ 256        proc import datafile="/home/&id./InternShip/&sdn._cw10/test.csv"
+ 257         dbms=csv out=test replace;
+ 258        guessingrows=max;
+ 259        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 260         /**********************************************************************
+ 261         *   PRODUCT:   SAS
+ 262         *   VERSION:   9.4
+ 263         *   CREATOR:   External File Interface
+ 264         *   DATE:      26AUG25
+ 265         *   DESC:      Generated SAS Datastep Code
+ 266         *   TEMPLATE SOURCE:  (None Specified.)
+ 267         ***********************************************************************/
+ 268            data WORK.TEST    ;
+ 269            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 270            infile '/home/u64271711/InternShip/Soroka_cw10/test.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 271               informat PassengerId best32. ;
+ 272               informat Pclass best32. ;
+ 273               informat Name $65. ;
+ 274               informat Sex $6. ;
+ 275               informat Age best32. ;
+ 276               informat SibSp best32. ;
+ 277               informat Parch best32. ;
+ 278               informat Ticket $18. ;
+ 279               informat Fare best32. ;
+ 280               informat Cabin $15. ;
+ 281               informat Embarked $1. ;
+ 282               format PassengerId best12. ;
+ 283               format Pclass best12. ;
+ 284               format Name $65. ;
+ 285               format Sex $6. ;
+ 286               format Age best12. ;
+ 287               format SibSp best12. ;
+ 288               format Parch best12. ;
+ 289               format Ticket $18. ;
+ 290               format Fare best12. ;
+ 291               format Cabin $15. ;
+ 292               format Embarked $1. ;
+ 293            input
+ 294                        PassengerId
+ 295                        Pclass
+ 296                        Name  $
+ 297                        Sex  $
+ 298                        Age
+ 299                        SibSp
+ 300                        Parch
+ 301                        Ticket  $
+ 302                        Fare
+ 303                        Cabin  $
+ 304                        Embarked  $
+ 305            ;
+ 306            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 307            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw10/test.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw10/test.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=26, серпня 2025 12:45:09,
+       File Size (bytes)=28629
+ 
+ NOTE: 418 records were read from the infile '/home/u64271711/InternShip/Soroka_cw10/test.csv'.
+       The minimum record length was 47.
+       The maximum record length was 118.
+ NOTE: The data set WORK.TEST has 418 observations and 11 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9440.87k
+       OS Memory           38684.00k
+       Timestamp           26.08.2025 06:16:53 пп
+       Step Count                        4534  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     139
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 418 rows created in WORK.TEST from /home/u64271711/InternShip/Soroka_cw10/test.csv.
+   
+   
+   
+ NOTE: WORK.TEST data set was successfully created.
+ NOTE: The data set WORK.TEST has 418 observations and 11 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.14 seconds
+       user cpu time       0.13 seconds
+       system cpu time     0.00 seconds
+       memory              9440.87k
+       OS Memory           38944.00k
+       Timestamp           26.08.2025 06:16:53 пп
+       Step Count                        4534  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1386
+       Page Swaps                        0
+       Voluntary Context Switches        90
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           288
+       
+ 
+ 308        proc import datafile="/home/&id./InternShip/&sdn._cw10/titanic.csv"
+ 309         dbms=csv out=titanic replace;
+ 310        guessingrows=max;
+ 311        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 312         /**********************************************************************
+ 313         *   PRODUCT:   SAS
+ 314         *   VERSION:   9.4
+ 315         *   CREATOR:   External File Interface
+ 316         *   DATE:      26AUG25
+ 317         *   DESC:      Generated SAS Datastep Code
+ 318         *   TEMPLATE SOURCE:  (None Specified.)
+ 319         ***********************************************************************/
+ 320            data WORK.TITANIC    ;
+ 321            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 322            infile '/home/u64271711/InternShip/Soroka_cw10/titanic.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 323               informat Name $84. ;
+ 324               informat Age best32. ;
+ 325               informat Gender $6. ;
+ 326               informat Class best32. ;
+ 327               informat Fare best32. ;
+ 328               informat Survived best32. ;
+ 329               format Name $84. ;
+ 330               format Age best12. ;
+ 331               format Gender $6. ;
+ 332               format Class best12. ;
+ 333               format Fare best12. ;
+ 334               format Survived best12. ;
+ 335            input
+ 336                        Name  $
+ 337                        Age
+ 338                        Gender  $
+ 339                        Class
+ 340                        Fare
+ 341                        Survived
+ 342            ;
+ 343            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 344            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw10/titanic.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw10/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=26, серпня 2025 12:45:09,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile '/home/u64271711/InternShip/Soroka_cw10/titanic.csv'.
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9577.21k
+       OS Memory           38684.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4535  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     132
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 1309 rows created in WORK.TITANIC from /home/u64271711/InternShip/Soroka_cw10/titanic.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC data set was successfully created.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.27 seconds
+       user cpu time       0.27 seconds
+       system cpu time     0.01 seconds
+       memory              9577.21k
+       OS Memory           38944.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4535  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1039
+       Page Swaps                        0
+       Voluntary Context Switches        87
+       Involuntary Context Switches      5
+       Block Input Operations            0
+       Block Output Operations           544
+       
+ 
+ 345        proc import datafile="/home/&id./InternShip/&sdn._cw10/titanic3.csv"
+ 346         dbms=csv out=titanic3 replace;
+ 347        guessingrows=max;
+ 348        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 349         /**********************************************************************
+ 350         *   PRODUCT:   SAS
+ 351         *   VERSION:   9.4
+ 352         *   CREATOR:   External File Interface
+ 353         *   DATE:      26AUG25
+ 354         *   DESC:      Generated SAS Datastep Code
+ 355         *   TEMPLATE SOURCE:  (None Specified.)
+ 356         ***********************************************************************/
+ 357            data WORK.TITANIC3    ;
+ 358            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 359            infile '/home/u64271711/InternShip/Soroka_cw10/titanic3.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 360               informat pclass best32. ;
+ 361               informat survived best32. ;
+ 362               informat name $84. ;
+ 363               informat sex $6. ;
+ 364               informat age best32. ;
+ 365               informat sibsp best32. ;
+ 366               informat parch best32. ;
+ 367               informat ticket $18. ;
+ 368               informat fare best32. ;
+ 369               informat cabin $15. ;
+ 370               informat embarked $1. ;
+ 371               informat boat $7. ;
+ 372               informat body best32. ;
+ 373               informat home_dest $52. ;
+ 374               format pclass best12. ;
+ 375               format survived best12. ;
+ 376               format name $84. ;
+ 377               format sex $6. ;
+ 378               format age best12. ;
+ 379               format sibsp best12. ;
+ 380               format parch best12. ;
+ 381               format ticket $18. ;
+ 382               format fare best12. ;
+ 383               format cabin $15. ;
+ 384               format embarked $1. ;
+ 385               format boat $7. ;
+ 386               format body best12. ;
+ 387               format home_dest $52. ;
+ 388            input
+ 389                        pclass
+ 390                        survived
+ 391                        name  $
+ 392                        sex  $
+ 393                        age
+ 394                        sibsp
+ 395                        parch
+ 396                        ticket  $
+ 397                        fare
+ 398                        cabin  $
+ 399                        embarked  $
+ 400                        boat  $
+ 401                        body
+ 402                        home_dest  $
+ 403            ;
+ 404            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 405            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw10/titanic3.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw10/titanic3.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=26, серпня 2025 12:45:09,
+       File Size (bytes)=108285
+ 
+ NOTE: 1310 records were read from the infile '/home/u64271711/InternShip/Soroka_cw10/titanic3.csv'.
+       The minimum record length was 13.
+       The maximum record length was 149.
+ NOTE: The data set WORK.TITANIC3 has 1310 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9730.90k
+       OS Memory           38684.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4536  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     133
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 1310 rows created in WORK.TITANIC3 from /home/u64271711/InternShip/Soroka_cw10/titanic3.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC3 data set was successfully created.
+ NOTE: The data set WORK.TITANIC3 has 1310 observations and 14 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.45 seconds
+       user cpu time       0.44 seconds
+       system cpu time     0.01 seconds
+       memory              9730.90k
+       OS Memory           39072.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4536  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1461
+       Page Swaps                        0
+       Voluntary Context Switches        91
+       Involuntary Context Switches      6
+       Block Input Operations            0
+       Block Output Operations           800
+       
+ 
+ 406        proc import datafile="/home/&id./InternShip/&sdn._cw10/train.csv"
+ 407         dbms=csv out=train replace;
+ 408        guessingrows=max;
+ 409        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 410         /**********************************************************************
+ 411         *   PRODUCT:   SAS
+ 412         *   VERSION:   9.4
+ 413         *   CREATOR:   External File Interface
+ 414         *   DATE:      26AUG25
+ 415         *   DESC:      Generated SAS Datastep Code
+ 416         *   TEMPLATE SOURCE:  (None Specified.)
+ 417         ***********************************************************************/
+ 418            data WORK.TRAIN    ;
+ 419            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 420            infile '/home/u64271711/InternShip/Soroka_cw10/train.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 421               informat PassengerId best32. ;
+ 422               informat Survived best32. ;
+ 423               informat Pclass best32. ;
+ 424               informat Name $84. ;
+ 425               informat Sex $6. ;
+ 426               informat Age best32. ;
+ 427               informat SibSp best32. ;
+ 428               informat Parch best32. ;
+ 429               informat Ticket $18. ;
+ 430               informat Fare best32. ;
+ 431               informat Cabin $15. ;
+ 432               informat Embarked $1. ;
+ 433               format PassengerId best12. ;
+ 434               format Survived best12. ;
+ 435               format Pclass best12. ;
+ 436               format Name $84. ;
+ 437               format Sex $6. ;
+ 438               format Age best12. ;
+ 439               format SibSp best12. ;
+ 440               format Parch best12. ;
+ 441               format Ticket $18. ;
+ 442               format Fare best12. ;
+ 443               format Cabin $15. ;
+ 444               format Embarked $1. ;
+ 445            input
+ 446                        PassengerId
+ 447                        Survived
+ 448                        Pclass
+ 449                        Name  $
+ 450                        Sex  $
+ 451                        Age
+ 452                        SibSp
+ 453                        Parch
+ 454                        Ticket  $
+ 455                        Fare
+ 456                        Cabin  $
+ 457                        Embarked  $
+ 458            ;
+ 459            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 460            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw10/train.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw10/train.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=26, серпня 2025 12:45:09,
+       File Size (bytes)=61194
+ 
+ NOTE: 891 records were read from the infile '/home/u64271711/InternShip/Soroka_cw10/train.csv'.
+       The minimum record length was 48.
+       The maximum record length was 127.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9583.56k
+       OS Memory           38684.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4537  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     133
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 891 rows created in WORK.TRAIN from /home/u64271711/InternShip/Soroka_cw10/train.csv.
+   
+   
+   
+ NOTE: WORK.TRAIN data set was successfully created.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.28 seconds
+       user cpu time       0.28 seconds
+       system cpu time     0.00 seconds
+       memory              9583.56k
+       OS Memory           38944.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4537  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1172
+       Page Swaps                        0
+       Voluntary Context Switches        85
+       Involuntary Context Switches      5
+       Block Input Operations            0
+       Block Output Operations           544
+       
+ 
+ 461        /* end Import *******************************************************************************************************/
+ 462        
+ 463        /* start creating merge var
+ 463      ! *******************************************************************************************************/
+ 464        data train_test;
+ 465        set train test;
+ 466        if name ^= '' then name_nq = compress(name, '"');
+ 467        if age ^= . then age_r = round(age);
+ 468        run;
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: There were 418 observations read from the data set WORK.TEST.
+ NOTE: The data set WORK.TRAIN_TEST has 1309 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1823.93k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4538  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     142
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 469        data titanic;
+ 470        set titanic;
+ 471        if name ^= '' then name_nq = compress(name, '"');
+ 472        if age ^= . then age_r = round(age);
+ 473        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1464.25k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4539  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 474        data titanic3;
+ 475        set titanic3;
+ 476        where name is not missing;
+ 477        if name ^= '' then name_nq = compress(name, '"');
+ 478        if age ^= . then age_r = round(age);
+ 479        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3.
+       WHERE name is not null;
+ NOTE: The data set WORK.TITANIC3 has 1309 observations and 16 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1517.50k
+       OS Memory           34092.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4540  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     123
+       Page Swaps                        0
+       Voluntary Context Switches        20
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 480        /* end creating merge var
+ 480      ! *******************************************************************************************************/
+ 481        
+ 482        /* start data sorting
+ 482      ! *******************************************************************************************************/
+ 483        proc sort data=titanic out=titanic_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC_SRT has 1309 observations and 8 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2672.96k
+       OS Memory           35388.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4541  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     224
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 484        proc sort data=titanic3 out=titanic3_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3.
+ NOTE: The data set WORK.TITANIC3_SRT has 1309 observations and 16 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2678.34k
+       OS Memory           35516.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4542  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     295
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1040
+       
+ 
+ 485        proc sort data=train_test out=train_test_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TRAIN_TEST.
+ NOTE: The data set WORK.TRAIN_TEST_SRT has 1309 observations and 14 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2560.15k
+       OS Memory           35388.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4543  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     242
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 486        /* end data sorting
+ 486      ! *******************************************************************************************************/
+ 487        
+ 488        /* start merging *******************************************************************************************************/
+ 489        data Titanic_full(drop=name_nq age_r);
+ 490        merge titanic_srt(in=in_main)
+ 491        train_test_srt(keep=name_nq age_r )
+ 492        titanic3_srt(keep=name_nq age_r embarked sibsp parch cabin);
+ 493        by name_nq age_r;
+ 494        if in_main;
+ 495        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_SRT.
+ NOTE: There were 1309 observations read from the data set WORK.TRAIN_TEST_SRT.
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3_SRT.
+ NOTE: The data set WORK.TITANIC_FULL has 1309 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2951.62k
+       OS Memory           34996.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4544  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     291
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 496        /* end merging *******************************************************************************************************/
+ 497        
+ 498        /* start adding var
+ 498      ! *******************************************************************************************************/
+ 499        data Titanic_full_v1(keep=Family_size Cabin_Known Embarkation_Port Title_Group survived class);
+ 500        length Family_size $ 200 Cabin_Known $ 200
+ 501        Embarkation_Port $ 200 Title_Group $ 200;
+ 502        set Titanic_full;
+ 503        if (max(0, sibsp) + max(0, parch) + 1) = 1 then Family_size = "  1 (solo)";
+ 504        else if 2 <= (max(0, sibsp) + max(0, parch) + 1) <= 4 then Family_size = "  2-4";
+ 505        else if (max(0, sibsp) + max(0, parch) + 1) >= 5 then Family_size = "  5+";
+ 506        if cabin = '' then Cabin_Known = '  Yes';
+ 507        else Cabin_Known = '  No';
+ 508        if embarked = 'C' then Embarkation_Port = '  Cherbourg';
+ 509        else if embarked = 'S' then Embarkation_Port = '  Southampton';
+ 510        else if embarked = 'Q' then Embarkation_Port = '  Queenstown';
+ 511        if scan(name, 2, ',. ') in ('Mr', 'Mrs', 'Miss') then Title_Group = "  Mr/Mrs/Miss";
+ 512        else if scan(name, 2, ',. ') = 'Master' then Title_Group = "  Master";
+ 513        else Title_Group = '  Other';
+ 514        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_FULL.
+ NOTE: The data set WORK.TITANIC_FULL_V1 has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2481.62k
+       OS Memory           34476.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4545  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     186
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           2312
+       
+ 
+ 515        /* end adding var
+ 515      ! *******************************************************************************************************/
+ 516        
+ 517        /* start tables create
+ 517      ! *******************************************************************************************************/
+ 518        %Grouping_Variable_SC(Titanic_full_v1, Family_size);
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=1;
+ NOTE: The data set WORK.TITANIC_FULL_V1_S has 500 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2293.65k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4546  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        18
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=0;
+ NOTE: The data set WORK.TITANIC_FULL_V1_D has 809 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2581.96k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4547  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1544
+       
+ 
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1_S.
+ NOTE: The data set WORK.S_FAMILY_SIZE_FREQ has 9 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2359.12k
+       OS Memory           35260.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4548  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     439
+       Page Swaps                        0
+       Voluntary Context Switches        49
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1_D.
+ NOTE: The data set WORK.D_FAMILY_SIZE_FREQ has 8 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2615.12k
+       OS Memory           35516.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4549  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     503
+       Page Swaps                        0
+       Voluntary Context Switches        51
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_FAMILY_SIZE_FREQ.
+ NOTE: The data set WORK.S_FAMILY_SIZE_FREQ_CH has 9 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              953.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4550  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 8 observations read from the data set WORK.D_FAMILY_SIZE_FREQ.
+ NOTE: The data set WORK.D_FAMILY_SIZE_FREQ_CH has 8 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              954.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4551  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_FAMILY_SIZE_FREQ_CH.
+ NOTE: The data set WORK.S_FAMILY_SIZE_SORT has 9 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4552  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 8 observations read from the data set WORK.D_FAMILY_SIZE_FREQ_CH.
+ NOTE: The data set WORK.D_FAMILY_SIZE_SORT has 8 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4553  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_FAMILY_SIZE_SORT.
+ NOTE: The data set WORK.S_FAMILY_SIZE_TRANS has 3 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4554  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 8 observations read from the data set WORK.D_FAMILY_SIZE_SORT.
+ NOTE: The data set WORK.D_FAMILY_SIZE_TRANS has 3 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4555  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        22
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_FAMILY_SIZE_TRANS.
+ NOTE: The data set WORK.S_FAMILY_SIZE_PRE has 3 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              990.40k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4556  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_FAMILY_SIZE_TRANS.
+ NOTE: The data set WORK.D_FAMILY_SIZE_PRE has 3 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              991.34k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4557  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_FAMILY_SIZE_PRE.
+ NOTE: The data set WORK.S_FAMILY_SIZE_PRES has 3 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4558  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_FAMILY_SIZE_PRE.
+ NOTE: The data set WORK.D_FAMILY_SIZE_PRES has 3 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4559  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_FAMILY_SIZE_PRES.
+ NOTE: There were 3 observations read from the data set WORK.D_FAMILY_SIZE_PRES.
+ NOTE: The data set WORK.FAMILY_SIZE_NOP has 3 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1442.81k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4560  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     154
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.FAMILY_SIZE_NOP.
+ NOTE: The data set WORK.FAMILY_SIZE_OUT has 3 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1142.68k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:54 пп
+       Step Count                        4561  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.FAMILY_SIZE_OUT.
+ NOTE: The data set WORK.FAMILY_SIZE_OUT_S has 3 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1182.53k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4562  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 519        %Grouping_Variable_SC(Titanic_full_v1, Cabin_Known);
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=1;
+ NOTE: The data set WORK.TITANIC_FULL_V1_S has 500 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2293.65k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4563  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        20
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=0;
+ NOTE: The data set WORK.TITANIC_FULL_V1_D has 809 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2581.96k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4564  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1552
+       
+ 
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1_S.
+ NOTE: The data set WORK.S_CABIN_KNOWN_FREQ has 6 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2359.12k
+       OS Memory           35260.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4565  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     439
+       Page Swaps                        0
+       Voluntary Context Switches        50
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1_D.
+ NOTE: The data set WORK.D_CABIN_KNOWN_FREQ has 6 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2615.12k
+       OS Memory           35516.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4566  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     503
+       Page Swaps                        0
+       Voluntary Context Switches        50
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.S_CABIN_KNOWN_FREQ.
+ NOTE: The data set WORK.S_CABIN_KNOWN_FREQ_CH has 6 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              953.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4567  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.D_CABIN_KNOWN_FREQ.
+ NOTE: The data set WORK.D_CABIN_KNOWN_FREQ_CH has 6 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              954.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4568  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.S_CABIN_KNOWN_FREQ_CH.
+ NOTE: The data set WORK.S_CABIN_KNOWN_SORT has 6 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4569  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.D_CABIN_KNOWN_FREQ_CH.
+ NOTE: The data set WORK.D_CABIN_KNOWN_SORT has 6 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4570  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.S_CABIN_KNOWN_SORT.
+ NOTE: The data set WORK.S_CABIN_KNOWN_TRANS has 2 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4571  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        24
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 6 observations read from the data set WORK.D_CABIN_KNOWN_SORT.
+ NOTE: The data set WORK.D_CABIN_KNOWN_TRANS has 2 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4572  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        24
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.S_CABIN_KNOWN_TRANS.
+ NOTE: The data set WORK.S_CABIN_KNOWN_PRE has 2 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              990.40k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4573  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.D_CABIN_KNOWN_TRANS.
+ NOTE: The data set WORK.D_CABIN_KNOWN_PRE has 2 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              991.34k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4574  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.S_CABIN_KNOWN_PRE.
+ NOTE: The data set WORK.S_CABIN_KNOWN_PRES has 2 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4575  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.D_CABIN_KNOWN_PRE.
+ NOTE: The data set WORK.D_CABIN_KNOWN_PRES has 2 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4576  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.S_CABIN_KNOWN_PRES.
+ NOTE: There were 2 observations read from the data set WORK.D_CABIN_KNOWN_PRES.
+ NOTE: The data set WORK.CABIN_KNOWN_NOP has 2 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1442.81k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4577  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     154
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.CABIN_KNOWN_NOP.
+ NOTE: The data set WORK.CABIN_KNOWN_OUT has 2 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1142.68k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4578  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 2 observations read from the data set WORK.CABIN_KNOWN_OUT.
+ NOTE: The data set WORK.CABIN_KNOWN_OUT_S has 2 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1182.53k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4579  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 520        %Grouping_Variable_SC(Titanic_full_v1, Embarkation_Port);
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=1;
+ NOTE: The data set WORK.TITANIC_FULL_V1_S has 500 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2293.65k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4580  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=0;
+ NOTE: The data set WORK.TITANIC_FULL_V1_D has 809 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2581.96k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4581  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1544
+       
+ 
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1_S.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_FREQ has 10 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2359.12k
+       OS Memory           35260.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4582  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     439
+       Page Swaps                        0
+       Voluntary Context Switches        50
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1_D.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_FREQ has 9 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2615.12k
+       OS Memory           35516.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4583  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     503
+       Page Swaps                        0
+       Voluntary Context Switches        52
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 10 observations read from the data set WORK.S_EMBARKATION_PORT_FREQ.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_FREQ_CH has 10 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              953.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4584  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        14
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.D_EMBARKATION_PORT_FREQ.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_FREQ_CH has 9 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              954.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4585  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 10 observations read from the data set WORK.S_EMBARKATION_PORT_FREQ_CH.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_SORT has 10 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4586  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.D_EMBARKATION_PORT_FREQ_CH.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_SORT has 9 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4587  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 10 observations read from the data set WORK.S_EMBARKATION_PORT_SORT.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_TRANS has 4 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4588  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.D_EMBARKATION_PORT_SORT.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_TRANS has 3 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4589  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 4 observations read from the data set WORK.S_EMBARKATION_PORT_TRANS.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_PRE has 4 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              990.40k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4590  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_EMBARKATION_PORT_TRANS.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_PRE has 3 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              990.40k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4591  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 4 observations read from the data set WORK.S_EMBARKATION_PORT_PRE.
+ NOTE: The data set WORK.S_EMBARKATION_PORT_PRES has 4 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4592  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           280
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_EMBARKATION_PORT_PRE.
+ NOTE: The data set WORK.D_EMBARKATION_PORT_PRES has 3 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4593  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 4 observations read from the data set WORK.S_EMBARKATION_PORT_PRES.
+ NOTE: There were 3 observations read from the data set WORK.D_EMBARKATION_PORT_PRES.
+ NOTE: The data set WORK.EMBARKATION_PORT_NOP has 4 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1442.81k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4594  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     154
+       Page Swaps                        0
+       Voluntary Context Switches        14
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: Missing values were generated as a result of performing an operation on missing values.
+       Each place is given by: (Number of times) at (Line):(Column).
+       1 at 520:202   1 at 520:224   1 at 520:238   1 at 520:50    1 at 520:72    1 at 520:86    1 at 520:153   1 at 520:175
+       1 at 520:189   1 at 520:2     1 at 520:24    1 at 520:38    
+ NOTE: There were 4 observations read from the data set WORK.EMBARKATION_PORT_NOP.
+ NOTE: The data set WORK.EMBARKATION_PORT_OUT has 4 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1142.68k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4595  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 4 observations read from the data set WORK.EMBARKATION_PORT_OUT.
+ NOTE: The data set WORK.EMBARKATION_PORT_OUT_S has 4 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1182.53k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4596  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 521        %Grouping_Variable_SC(Titanic_full_v1, Title_Group);
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=1;
+ NOTE: The data set WORK.TITANIC_FULL_V1_S has 500 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2293.65k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4597  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1.
+       WHERE survived=0;
+ NOTE: The data set WORK.TITANIC_FULL_V1_D has 809 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2581.96k
+       OS Memory           34732.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4598  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     283
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1544
+       
+ 
+ 
+ NOTE: There were 500 observations read from the data set WORK.TITANIC_FULL_V1_S.
+ NOTE: The data set WORK.S_TITLE_GROUP_FREQ has 9 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2359.12k
+       OS Memory           35260.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4599  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     439
+       Page Swaps                        0
+       Voluntary Context Switches        49
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 809 observations read from the data set WORK.TITANIC_FULL_V1_D.
+ NOTE: The data set WORK.D_TITLE_GROUP_FREQ has 7 observations and 3 variables.
+ NOTE: PROCEDURE FREQ used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2503.00k
+       OS Memory           35516.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4600  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     503
+       Page Swaps                        0
+       Voluntary Context Switches        52
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1320
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_TITLE_GROUP_FREQ.
+ NOTE: The data set WORK.S_TITLE_GROUP_FREQ_CH has 9 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              953.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4601  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 7 observations read from the data set WORK.D_TITLE_GROUP_FREQ.
+ NOTE: The data set WORK.D_TITLE_GROUP_FREQ_CH has 7 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              954.09k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4602  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_TITLE_GROUP_FREQ_CH.
+ NOTE: The data set WORK.S_TITLE_GROUP_SORT has 9 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4603  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 7 observations read from the data set WORK.D_TITLE_GROUP_FREQ_CH.
+ NOTE: The data set WORK.D_TITLE_GROUP_SORT has 7 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1210.40k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4604  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 9 observations read from the data set WORK.S_TITLE_GROUP_SORT.
+ NOTE: The data set WORK.S_TITLE_GROUP_TRANS has 3 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4605  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        23
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 7 observations read from the data set WORK.D_TITLE_GROUP_SORT.
+ NOTE: The data set WORK.D_TITLE_GROUP_TRANS has 3 observations and 4 variables.
+ NOTE: PROCEDURE TRANSPOSE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2815.18k
+       OS Memory           36016.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4606  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     180
+       Page Swaps                        0
+       Voluntary Context Switches        22
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_TITLE_GROUP_TRANS.
+ NOTE: The data set WORK.S_TITLE_GROUP_PRE has 3 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              990.40k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4607  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_TITLE_GROUP_TRANS.
+ NOTE: The data set WORK.D_TITLE_GROUP_PRE has 3 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              991.34k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4608  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     121
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_TITLE_GROUP_PRE.
+ NOTE: The data set WORK.S_TITLE_GROUP_PRES has 3 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4609  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.D_TITLE_GROUP_PRE.
+ NOTE: The data set WORK.D_TITLE_GROUP_PRES has 3 observations and 5 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1180.06k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4610  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.S_TITLE_GROUP_PRES.
+ NOTE: There were 3 observations read from the data set WORK.D_TITLE_GROUP_PRES.
+ NOTE: The data set WORK.TITLE_GROUP_NOP has 3 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1442.81k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4611  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     154
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.TITLE_GROUP_NOP.
+ NOTE: The data set WORK.TITLE_GROUP_OUT has 3 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1142.68k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4612  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 
+ NOTE: There were 3 observations read from the data set WORK.TITLE_GROUP_OUT.
+ NOTE: The data set WORK.TITLE_GROUP_OUT_S has 3 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1182.53k
+       OS Memory           34224.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4613  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     146
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 522        /* end tables create
+ 522      ! *******************************************************************************************************/
+ 523        
+ 524        /* start tables merging
+ 524      ! *******************************************************************************************************/
+ 525        data Titanic_nstr;
+ 526        merge Family_size_out_S
+ 527        Cabin_Known_out_S
+ 528        Embarkation_Port_out_S
+ 529        Title_Group_out_S;
+ 530        by var1;
+ 531        if var1 ^= '' then output;;
+ 532        if _n_ = 1 then do;
+ 533        var2 = '';
+ 534        var3 = '';
+ 535        var4 = '';
+ 536        var5 = '';
+ 537        var6 = '';
+ 538        var7 = '';
+ 539        var8 = '';
+ 540        var9 = '';
+ 541        var1='Family size';
+ 542        output;
+ 543        var1='Cabin Known';
+ 544        output;
+ 545        var1='Embarkation^nPort';
+ 546        output;
+ 547        var1='Title Group';
+ 548        output;
+ 549        end;
+ 550        run;
+ 
+ NOTE: There were 3 observations read from the data set WORK.FAMILY_SIZE_OUT_S.
+ NOTE: There were 2 observations read from the data set WORK.CABIN_KNOWN_OUT_S.
+ NOTE: There were 4 observations read from the data set WORK.EMBARKATION_PORT_OUT_S.
+ NOTE: There were 3 observations read from the data set WORK.TITLE_GROUP_OUT_S.
+ NOTE: The data set WORK.TITANIC_NSTR has 15 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2141.71k
+       OS Memory           34744.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4614  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     218
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 551        data &sdn..t14_1_&sdn.(drop=help);
+ 552        do i = 1, 5, 6, 7, 2, 15, 11, 3, 8, 13, 14, 4, 10, 9, 12;
+ 553            set Titanic_nstr point=i;
+ 554            /* start work place */
+ 555            help = scan(var2, 1, ' ()%');
+ 556            do i = length(help) to 2 by 1;
+ 557            var2 = ' ' || var2;
+ 558            end;
+ 559            help = scan(var3, 1, ' ()%');
+ 560            do i = length(help) to 2 by 1;
+ 561            var3 = ' ' || var3;
+ 562            end;
+ 563            help = scan(var4, 1, ' ()%');
+ 564            do i = length(help) to 2 by 1;
+ 565            var4 = ' ' || var4;
+ 566            end;
+ 567            help = scan(var5, 1, ' ()%');
+ 568            do i = length(help) to 2 by 1;
+ 569            var5 = ' ' || var5;
+ 570            end;
+ 571            help = scan(var6, 1, ' ()%');
+ 572            do i = length(help) to 2 by 1;
+ 573            var6 = ' ' || var6;
+ 574            end;
+ 575            help = scan(var7, 1, ' ()%');
+ 576            do i = length(help) to 2 by 1;
+ 577            var7 = ' ' || var7;
+ 578            end;
+ 579            help = scan(var8, 1, ' ()%');
+ 580            do i = length(help) to 2 by 1;
+ 581            var8 = ' ' || var8;
+ 582            end;
+ 583            help = scan(var9, 1, ' ()%');
+ 584            do i = length(help) to 2 by 1;
+ 585            var9 = ' ' || var9;
+ 586            end;
+ 587            if length(var2) = 10 then var2 = substr(var2, 1, 3) || ' ' || substr(var2, 4, 7);
+ 588            if length(var3) = 10 then var3 = substr(var3, 1, 3) || ' ' || substr(var3, 4, 7);
+ 589            if length(var4) = 10 then var4 = substr(var4, 1, 3) || ' ' || substr(var4, 4, 7);
+ 590            if length(var5) = 10 then var5 = substr(var5, 1, 3) || ' ' || substr(var5, 4, 7);
+ 591            if length(var6) = 10 then var6 = substr(var6, 1, 3) || ' ' || substr(var6, 4, 7);
+ 592            if length(var7) = 10 then var7 = substr(var7, 1, 3) || ' ' || substr(var7, 4, 7);
+ 593            if length(var8) = 10 then var8 = substr(var8, 1, 3) || ' ' || substr(var8, 4, 7);
+ 594            if length(var9) = 10 then var9 = substr(var9, 1, 3) || ' ' || substr(var9, 4, 7);
+ 595            /* end work place */
+ 596            output;
+ 597            end;
+ 598            stop;
+ 599        run;
+ 
+ NOTE: The data set SOROKA.T14_1_SOROKA has 15 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1135.59k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4615  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     115
+       Page Swaps                        0
+       Voluntary Context Switches        37
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 600        /* end tables merging
+ 600      ! *******************************************************************************************************/
+ 601        
+ 602        /* start counting
+ 602      ! *******************************************************************************************************/
+ 603        data tab_S1;
+ 604        set titanic_full;
+ 605        where survived = 1 and class = 1;
+ 606        run;
+ 
+ NOTE: There were 200 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=1) and (class=1);
+ NOTE: The data set WORK.TAB_S1 has 200 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1122.25k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4616  Switch Count  4
+       Page Faults                       0
+       Page Reclaims                     114
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 607        data tab_S2;
+ 608        set titanic_full;
+ 609        where survived = 1 and class = 2;
+ 610        run;
+ 
+ NOTE: There were 119 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=1) and (class=2);
+ NOTE: The data set WORK.TAB_S2 has 119 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1234.37k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4617  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     117
+       Page Swaps                        0
+       Voluntary Context Switches        15
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 611        data tab_S3;
+ 612        set titanic_full;
+ 613        where survived = 1 and class = 3;
+ 614        run;
+ 
+ NOTE: There were 181 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=1) and (class=3);
+ NOTE: The data set WORK.TAB_S3 has 181 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1234.37k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4618  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     114
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 615        data tab_D1;
+ 616        set titanic_full;
+ 617        where survived = 0 and class = 1;
+ 618        run;
+ 
+ NOTE: There were 123 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=0) and (class=1);
+ NOTE: The data set WORK.TAB_D1 has 123 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1234.37k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4619  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     117
+       Page Swaps                        0
+       Voluntary Context Switches        15
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 619        data tab_D2;
+ 620        set titanic_full;
+ 621        where survived = 0 and class = 2;
+ 622        run;
+ 
+ NOTE: There were 158 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=0) and (class=2);
+ NOTE: The data set WORK.TAB_D2 has 158 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1234.37k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4620  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     115
+       Page Swaps                        0
+       Voluntary Context Switches        15
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 623        data tab_D3;
+ 624        set titanic_full;
+ 625        where survived = 0 and class = 3;
+ 626        run;
+ 
+ NOTE: There were 528 observations read from the data set WORK.TITANIC_FULL.
+       WHERE (survived=0) and (class=3);
+ NOTE: The data set WORK.TAB_D3 has 528 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1234.37k
+       OS Memory           33964.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4621  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     101
+       Page Swaps                        0
+       Voluntary Context Switches        18
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+       
+ 
+ 627        /* end counting *******************************************************************************************************/
+ 628        
+ 629        /* start creating report
+ 629      ! *******************************************************************************************************/
+ 630        ods escapechar='^';
+ 631        ods rtf file="/home/&id./InternShip/&sdn._cw10/t14_1_&sdn..rtf"
+ 632        style=intern startpage=never;
+ NOTE: Writing RTF Body file: /home/u64271711/InternShip/Soroka_cw10/t14_1_Soroka.rtf
+ 633        options nodate nonumber
+ 634        orientation=landscape papersize=(11in 8.5in)
+ 635        topmargin=1.25in bottommargin=0.8in
+ 636        leftmargin=1in rightmargin=0.6in;
+ 637        %let date = %sysfunc(date(),  DATE9.);
+ 638        %let time = %sysfunc(time(), time5.);
+ 639        title justify=right 'Page ^{thispage} of ^{lastpage}';
+ 640        title2 justify=right "&date &time";
+ 641        title3 justify=center 'Table 14.1';
+ 642        title4 'Summary of Survival Status by Passenger Characteristics and Class';
+ 643        footnote justify=left "Percentages are based on the number of passengers within each class (N).";
+ 644        footnote2 justify=left "/home/&id./InternShip/&sdn._cw10/t14_1_&sdn..sas ran on &date. at &time. Programmer: &sdn.";
+ 645        /* start proc report
+ 645      ! *******************************************************************************************************/
+ 646        proc report data=&sdn..t14_1_&sdn. nowd spanrows
+ 647        style(header)=[just=center height=0.32in vjust=bottom] style(column)=[height=0.289in];
+ 648        column var1 ("^{style [borderbottomwidth=1pt] Survive}" var2 var3 var4 var5)
+ 649        ("^{style [borderbottomwidth=1pt] Deceased}" var6 var7 var8 var9);
+ 650        define var1 / display "Grouping^n  Variable" style(header)=[just=left];
+ 651        define var2 / display "Class 1^n(N=%totobs(tab_S1))";
+ 652        define var3 / display "Class 2^n(N=%totobs(tab_S2))";
+ 653        define var4 / display "Class 3^n(N=%totobs(tab_S3))";
+ 654        define var5 / display "Total^n(N=%sysevalf(%totobs(tab_S1)+%totobs(tab_S2)+%totobs(tab_S3)))";
+ 655        define var6 / display "Class 1^n(N=%totobs(tab_D1))";
+ 656        define var7 / display "Class 2^n(N=%totobs(tab_D2))";
+ 657        define var8 / display "Class 3^n(N=%totobs(tab_D3))";
+ 658        define var9 / display "Total^n(N=%sysevalf(%totobs(tab_D1)+%totobs(tab_D2)+%totobs(tab_D3)))";
+ 659        run;
+ 
+ NOTE: PROCEDURE REPORT used (Total process time):
+       real time           0.04 seconds
+       user cpu time       0.04 seconds
+       system cpu time     0.00 seconds
+       memory              7846.70k
+       OS Memory           39840.00k
+       Timestamp           26.08.2025 06:16:55 пп
+       Step Count                        4622  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     2013
+       Page Swaps                        0
+       Voluntary Context Switches        21
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           24
+       
+ NOTE: There were 15 observations read from the data set SOROKA.T14_1_SOROKA.
+ 
+ 660        /* end proc report
+ 660      ! *******************************************************************************************************/
+ 661        ods rtf close;
+ 662        /* start creating report
+ 662      ! *******************************************************************************************************/
+ 663        
+ 664        ods proctitle;
+ 665        
+ 666        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 676        

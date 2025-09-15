@@ -1,0 +1,905 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 69         
+ 70         ods noproctitle;
+ 71         
+ 72         /* start macro variables
+ 72       ! *******************************************************************************************************/
+ 73         %let pth = /home/u64271711/InternShip/Soroka_cw6;
+ 74         /* end macro variables
+ 74       ! *******************************************************************************************************/
+ 75         
+ 76         /* start format *******************************************************************************************************/
+ 77         proc format;
+ 78         
+ 78       !  value YN_F
+ 79         1 = 'Yes'
+ 80         0 = 'No';
+ NOTE: Format YN_F is already on the library WORK.FORMATS.
+ NOTE: Format YN_F has been output.
+ 81         run;
+ 
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              354.71k
+       OS Memory           39080.00k
+       Timestamp           18.08.2025 12:31:05 пп
+       Step Count                        6561  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     14
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           32
+       
+ 
+ 82         /* end format *******************************************************************************************************/
+ 83         
+ 84         /* start Create libref
+ 84       ! *******************************************************************************************************/
+ 85         libname Soroka "&pth";
+ NOTE: Libref SOROKA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /home/u64271711/InternShip/Soroka_cw6
+ 86         /* end Create libref
+ 86       ! *******************************************************************************************************/
+ 87         
+ 88         /* start Import *******************************************************************************************************/
+ 89         options validvarname=v7;
+ 90         proc import datafile="&pth/test.csv"
+ 91          dbms=csv out=test replace;
+ 92         guessingrows=max;
+ 93         run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 94          /**********************************************************************
+ 95          *   PRODUCT:   SAS
+ 96          *   VERSION:   9.4
+ 97          *   CREATOR:   External File Interface
+ 98          *   DATE:      18AUG25
+ 99          *   DESC:      Generated SAS Datastep Code
+ 100         *   TEMPLATE SOURCE:  (None Specified.)
+ 101         ***********************************************************************/
+ 102            data WORK.TEST    ;
+ 103            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 104            infile '/home/u64271711/InternShip/Soroka_cw6/test.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 105               informat PassengerId best32. ;
+ 106               informat Pclass best32. ;
+ 107               informat Name $65. ;
+ 108               informat Sex $6. ;
+ 109               informat Age best32. ;
+ 110               informat SibSp best32. ;
+ 111               informat Parch best32. ;
+ 112               informat Ticket $18. ;
+ 113               informat Fare best32. ;
+ 114               informat Cabin $15. ;
+ 115               informat Embarked $1. ;
+ 116               format PassengerId best12. ;
+ 117               format Pclass best12. ;
+ 118               format Name $65. ;
+ 119               format Sex $6. ;
+ 120               format Age best12. ;
+ 121               format SibSp best12. ;
+ 122               format Parch best12. ;
+ 123               format Ticket $18. ;
+ 124               format Fare best12. ;
+ 125               format Cabin $15. ;
+ 126               format Embarked $1. ;
+ 127            input
+ 128                        PassengerId
+ 129                        Pclass
+ 130                        Name  $
+ 131                        Sex  $
+ 132                        Age
+ 133                        SibSp
+ 134                        Parch
+ 135                        Ticket  $
+ 136                        Fare
+ 137                        Cabin  $
+ 138                        Embarked  $
+ 139            ;
+ 140            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 141            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw6/test.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw6/test.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=11, серпня 2025 15:34:22,
+       File Size (bytes)=28629
+ 
+ NOTE: 418 records were read from the infile '/home/u64271711/InternShip/Soroka_cw6/test.csv'.
+       The minimum record length was 47.
+       The maximum record length was 118.
+ NOTE: The data set WORK.TEST has 418 observations and 11 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9427.53k
+       OS Memory           45344.00k
+       Timestamp           18.08.2025 12:31:05 пп
+       Step Count                        6562  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     126
+       Page Swaps                        0
+       Voluntary Context Switches        16
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+       
+ 
+ 418 rows created in WORK.TEST from /home/u64271711/InternShip/Soroka_cw6/test.csv.
+   
+   
+   
+ NOTE: WORK.TEST data set was successfully created.
+ NOTE: The data set WORK.TEST has 418 observations and 11 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.14 seconds
+       user cpu time       0.14 seconds
+       system cpu time     0.01 seconds
+       memory              9427.53k
+       OS Memory           45604.00k
+       Timestamp           18.08.2025 12:31:05 пп
+       Step Count                        6562  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1268
+       Page Swaps                        0
+       Voluntary Context Switches        91
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           320
+       
+ 
+ 142        proc import datafile="&pth/titanic.csv"
+ 143         dbms=csv out=titanic replace;
+ 144        guessingrows=max;
+ 145        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 146         /**********************************************************************
+ 147         *   PRODUCT:   SAS
+ 148         *   VERSION:   9.4
+ 149         *   CREATOR:   External File Interface
+ 150         *   DATE:      18AUG25
+ 151         *   DESC:      Generated SAS Datastep Code
+ 152         *   TEMPLATE SOURCE:  (None Specified.)
+ 153         ***********************************************************************/
+ 154            data WORK.TITANIC    ;
+ 155            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 156            infile '/home/u64271711/InternShip/Soroka_cw6/titanic.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 157               informat Name $84. ;
+ 158               informat Age best32. ;
+ 159               informat Gender $6. ;
+ 160               informat Class best32. ;
+ 161               informat Fare best32. ;
+ 162               informat Survived best32. ;
+ 163               format Name $84. ;
+ 164               format Age best12. ;
+ 165               format Gender $6. ;
+ 166               format Class best12. ;
+ 167               format Fare best12. ;
+ 168               format Survived best12. ;
+ 169            input
+ 170                        Name  $
+ 171                        Age
+ 172                        Gender  $
+ 173                        Class
+ 174                        Fare
+ 175                        Survived
+ 176            ;
+ 177            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 178            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw6/titanic.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw6/titanic.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=11, серпня 2025 15:34:22,
+       File Size (bytes)=63414
+ 
+ NOTE: 1309 records were read from the infile '/home/u64271711/InternShip/Soroka_cw6/titanic.csv'.
+       The minimum record length was 29.
+       The maximum record length was 104.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              9582.68k
+       OS Memory           45344.00k
+       Timestamp           18.08.2025 12:31:05 пп
+       Step Count                        6563  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     147
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           528
+       
+ 
+ 1309 rows created in WORK.TITANIC from /home/u64271711/InternShip/Soroka_cw6/titanic.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC data set was successfully created.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 6 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.27 seconds
+       user cpu time       0.27 seconds
+       system cpu time     0.00 seconds
+       memory              9582.68k
+       OS Memory           45604.00k
+       Timestamp           18.08.2025 12:31:05 пп
+       Step Count                        6563  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1143
+       Page Swaps                        0
+       Voluntary Context Switches        87
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           544
+       
+ 
+ 179        proc import datafile="&pth/titanic3.csv"
+ 180         dbms=csv out=titanic3 replace;
+ 181        guessingrows=max;
+ 182        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 183         /**********************************************************************
+ 184         *   PRODUCT:   SAS
+ 185         *   VERSION:   9.4
+ 186         *   CREATOR:   External File Interface
+ 187         *   DATE:      18AUG25
+ 188         *   DESC:      Generated SAS Datastep Code
+ 189         *   TEMPLATE SOURCE:  (None Specified.)
+ 190         ***********************************************************************/
+ 191            data WORK.TITANIC3    ;
+ 192            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 193            infile '/home/u64271711/InternShip/Soroka_cw6/titanic3.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 194               informat pclass best32. ;
+ 195               informat survived best32. ;
+ 196               informat name $84. ;
+ 197               informat sex $6. ;
+ 198               informat age best32. ;
+ 199               informat sibsp best32. ;
+ 200               informat parch best32. ;
+ 201               informat ticket $18. ;
+ 202               informat fare best32. ;
+ 203               informat cabin $15. ;
+ 204               informat embarked $1. ;
+ 205               informat boat $7. ;
+ 206               informat body best32. ;
+ 207               informat home_dest $52. ;
+ 208               format pclass best12. ;
+ 209               format survived best12. ;
+ 210               format name $84. ;
+ 211               format sex $6. ;
+ 212               format age best12. ;
+ 213               format sibsp best12. ;
+ 214               format parch best12. ;
+ 215               format ticket $18. ;
+ 216               format fare best12. ;
+ 217               format cabin $15. ;
+ 218               format embarked $1. ;
+ 219               format boat $7. ;
+ 220               format body best12. ;
+ 221               format home_dest $52. ;
+ 222            input
+ 223                        pclass
+ 224                        survived
+ 225                        name  $
+ 226                        sex  $
+ 227                        age
+ 228                        sibsp
+ 229                        parch
+ 230                        ticket  $
+ 231                        fare
+ 232                        cabin  $
+ 233                        embarked  $
+ 234                        boat  $
+ 235                        body
+ 236                        home_dest  $
+ 237            ;
+ 238            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 239            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw6/titanic3.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw6/titanic3.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=11, серпня 2025 15:34:22,
+       File Size (bytes)=108285
+ 
+ NOTE: 1310 records were read from the infile '/home/u64271711/InternShip/Soroka_cw6/titanic3.csv'.
+       The minimum record length was 13.
+       The maximum record length was 149.
+ NOTE: The data set WORK.TITANIC3 has 1310 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9729.68k
+       OS Memory           45344.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6564  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     143
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 1310 rows created in WORK.TITANIC3 from /home/u64271711/InternShip/Soroka_cw6/titanic3.csv.
+   
+   
+   
+ NOTE: WORK.TITANIC3 data set was successfully created.
+ NOTE: The data set WORK.TITANIC3 has 1310 observations and 14 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.45 seconds
+       user cpu time       0.44 seconds
+       system cpu time     0.01 seconds
+       memory              9729.68k
+       OS Memory           45732.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6564  Switch Count  10
+       Page Faults                       0
+       Page Reclaims                     1254
+       Page Swaps                        0
+       Voluntary Context Switches        89
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           800
+       
+ 
+ 240        proc import datafile="&pth/train.csv"
+ 241         dbms=csv out=train replace;
+ 242        guessingrows=max;
+ 243        run;
+ 
+ NOTE: Unable to open parameter catalog: SASUSER.PARMS.PARMS.SLIST in update mode. Temporary parameter values will be saved to 
+ WORK.PARMS.PARMS.SLIST.
+ 244         /**********************************************************************
+ 245         *   PRODUCT:   SAS
+ 246         *   VERSION:   9.4
+ 247         *   CREATOR:   External File Interface
+ 248         *   DATE:      18AUG25
+ 249         *   DESC:      Generated SAS Datastep Code
+ 250         *   TEMPLATE SOURCE:  (None Specified.)
+ 251         ***********************************************************************/
+ 252            data WORK.TRAIN    ;
+ 253            %let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+ 254            infile '/home/u64271711/InternShip/Soroka_cw6/train.csv' delimiter = ',' MISSOVER DSD lrecl=32767 firstobs=2 ;
+ 255               informat PassengerId best32. ;
+ 256               informat Survived best32. ;
+ 257               informat Pclass best32. ;
+ 258               informat Name $84. ;
+ 259               informat Sex $6. ;
+ 260               informat Age best32. ;
+ 261               informat SibSp best32. ;
+ 262               informat Parch best32. ;
+ 263               informat Ticket $18. ;
+ 264               informat Fare best32. ;
+ 265               informat Cabin $15. ;
+ 266               informat Embarked $1. ;
+ 267               format PassengerId best12. ;
+ 268               format Survived best12. ;
+ 269               format Pclass best12. ;
+ 270               format Name $84. ;
+ 271               format Sex $6. ;
+ 272               format Age best12. ;
+ 273               format SibSp best12. ;
+ 274               format Parch best12. ;
+ 275               format Ticket $18. ;
+ 276               format Fare best12. ;
+ 277               format Cabin $15. ;
+ 278               format Embarked $1. ;
+ 279            input
+ 280                        PassengerId
+ 281                        Survived
+ 282                        Pclass
+ 283                        Name  $
+ 284                        Sex  $
+ 285                        Age
+ 286                        SibSp
+ 287                        Parch
+ 288                        Ticket  $
+ 289                        Fare
+ 290                        Cabin  $
+ 291                        Embarked  $
+ 292            ;
+ 293            if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+ 294            run;
+ 
+ NOTE: The infile '/home/u64271711/InternShip/Soroka_cw6/train.csv' is:
+       Filename=/home/u64271711/InternShip/Soroka_cw6/train.csv,
+       Owner Name=u64271711,Group Name=oda,
+       Access Permission=-rw-r--r--,
+       Last Modified=11, серпня 2025 15:34:22,
+       File Size (bytes)=61194
+ 
+ NOTE: 891 records were read from the infile '/home/u64271711/InternShip/Soroka_cw6/train.csv'.
+       The minimum record length was 48.
+       The maximum record length was 127.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              9581.96k
+       OS Memory           45344.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6565  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     141
+       Page Swaps                        0
+       Voluntary Context Switches        17
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 891 rows created in WORK.TRAIN from /home/u64271711/InternShip/Soroka_cw6/train.csv.
+   
+   
+   
+ NOTE: WORK.TRAIN data set was successfully created.
+ NOTE: The data set WORK.TRAIN has 891 observations and 12 variables.
+ NOTE: PROCEDURE IMPORT used (Total process time):
+       real time           0.28 seconds
+       user cpu time       0.28 seconds
+       system cpu time     0.00 seconds
+       memory              9581.96k
+       OS Memory           45604.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6565  Switch Count  9
+       Page Faults                       0
+       Page Reclaims                     1081
+       Page Swaps                        0
+       Voluntary Context Switches        92
+       Involuntary Context Switches      7
+       Block Input Operations            0
+       Block Output Operations           544
+       
+ 
+ 295        /* end Import *******************************************************************************************************/
+ 296        
+ 297        /* start creating merge var
+ 297      ! *******************************************************************************************************/
+ 298        data train_test;
+ 299        set train test;
+ 300        if name ^= '' then name_nq = compress(name, '"');
+ 301        if age ^= . then age_r = round(age);
+ 302        run;
+ 
+ NOTE: There were 891 observations read from the data set WORK.TRAIN.
+ NOTE: There were 418 observations read from the data set WORK.TEST.
+ NOTE: The data set WORK.TRAIN_TEST has 1309 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1823.43k
+       OS Memory           40628.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6566  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     125
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 303        data titanic;
+ 304        set titanic;
+ 305        if name ^= '' then name_nq = compress(name, '"');
+ 306        if age ^= . then age_r = round(age);
+ 307        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC has 1309 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1462.46k
+       OS Memory           40368.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6567  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           776
+       
+ 
+ 308        data titanic3;
+ 309        set titanic3;
+ 310        where name is not missing;
+ 311        if name ^= '' then name_nq = compress(name, '"');
+ 312        if age ^= . then age_r = round(age);
+ 313        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3.
+       WHERE name is not null;
+ NOTE: The data set WORK.TITANIC3 has 1309 observations and 16 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              1515.50k
+       OS Memory           40496.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6568  Switch Count  5
+       Page Faults                       0
+       Page Reclaims                     123
+       Page Swaps                        0
+       Voluntary Context Switches        19
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           1032
+       
+ 
+ 314        /* end creating merge var
+ 314      ! *******************************************************************************************************/
+ 315        
+ 316        /* start data sorting
+ 316      ! *******************************************************************************************************/
+ 317        proc sort data=titanic out=titanic_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC.
+ NOTE: The data set WORK.TITANIC_SRT has 1309 observations and 8 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2670.90k
+       OS Memory           41792.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6569  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     224
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 318        proc sort data=titanic3 out=titanic3_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3.
+ NOTE: The data set WORK.TITANIC3_SRT has 1309 observations and 16 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2676.18k
+       OS Memory           41920.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6570  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     295
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           1040
+       
+ 
+ 319        proc sort data=train_test out=train_test_srt;by name_nq age_r ;run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TRAIN_TEST.
+ NOTE: The data set WORK.TRAIN_TEST_SRT has 1309 observations and 14 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              2552.81k
+       OS Memory           41792.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6571  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     242
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           784
+       
+ 
+ 320        /* end data sorting
+ 320      ! *******************************************************************************************************/
+ 321        
+ 322        /* start merging *******************************************************************************************************/
+ 323        data Titanic_full(drop=name_nq age_r);
+ 324        merge titanic_srt(in=in_main)
+ 325        train_test_srt(keep=name_nq age_r passengerid)
+ 326        titanic3_srt(keep=name_nq age_r embarked home_dest);
+ 327        by name_nq age_r;
+ 328        if in_main;
+ 329        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_SRT.
+ NOTE: There were 1309 observations read from the data set WORK.TRAIN_TEST_SRT.
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC3_SRT.
+ NOTE: The data set WORK.TITANIC_FULL has 1309 observations and 9 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              3062.18k
+       OS Memory           41400.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6572  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     287
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           520
+       
+ 
+ 330        /* end merging *******************************************************************************************************/
+ 331        
+ 332        /* start adding var
+ 332      ! *******************************************************************************************************/
+ 333        data Titanic_full_v1(drop=home_dest);
+ 334        length embarked $ 200 dmy $ 200 Home $ 200 Destination $ 200
+ 335        name $ 200 gender $ 200 Title $ 200 AgeGroup $ 200;
+ 336        format embarked $20.;
+ 337        set Titanic_full;
+ 338        if Embarked in ('S', 'C') then Dmy=cat('10APR1912','(','14APR1912'd - '10APR1912'd, ')');
+ 339        else if Embarked='Q' then Dmy=cat('11APR1912','(','14APR1912'd - '11APR1912'd, ')');
+ 340        if embarked = 'C' then embarked = 'Cherbourg';
+ 341        else if embarked = 'S' then embarked = 'Southampton';
+ 342        else if embarked = 'Q' then embarked = 'Queenstown';
+ 343        PassengerID_Class = cat(passengerid,'-',Class);
+ 344        Title = scan(name, 2, ',.');
+ 345        if 0 <= Age <= 12 then AgeGroup = 'Child';
+ 346        else if 13 <= Age <= 18 then AgeGroup = 'Teen';
+ 347        else if 19 <= Age then AgeGroup = 'Adult';
+ 348        else agegroup = 'Unknowm';
+ 349        Home = scan(home_dest, 1, '/');
+ 350        Destination = scan(home_dest, -1, '/');
+ 351        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_FULL.
+ NOTE: The data set WORK.TITANIC_FULL_V1 has 1309 observations and 14 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              2499.12k
+       OS Memory           41392.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6573  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     231
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           4872
+       
+ 
+ 352        /* end adding var
+ 352      ! *******************************************************************************************************/
+ 353        
+ 354        /* start final table
+ 354      ! *******************************************************************************************************/
+ 355        proc sort data=Titanic_full_v1 out=Titanic_full_v1_srt(drop=PassengerID);
+ 356        by Class PassengerID;
+ 357        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_FULL_V1.
+ NOTE: The data set WORK.TITANIC_FULL_V1_SRT has 1309 observations and 13 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              5634.96k
+       OS Memory           44488.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6574  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     987
+       Page Swaps                        0
+       Voluntary Context Switches        12
+       Involuntary Context Switches      2
+       Block Input Operations            0
+       Block Output Operations           4880
+       
+ 
+ 358        data Soroka.l16_Soroka(drop=PassengerID_Class Age gender dmy survived Title AgeGroup Home Destination);
+ 359        length var1-var9 $ 200;
+ 360        set Titanic_full_v1_srt(keep=PassengerID_Class Age gender dmy survived Title AgeGroup Home Destination class);
+ 361         var1 = PassengerID_Class;
+ 362         var2 = cats(put(Age, best12.));
+ 363         if gender = 'male' then var3 = 'M';
+ 364         else if gender = 'female' then var3 = 'F';
+ 365         var4 = cat(substr(dmy, 1, 9),' ',substr(dmy, 10, 3));
+ 366         var5 = cats(put(survived, YN_f.));
+ 367         var6 = Title;
+ 368         var7 = AgeGroup;
+ 369         var8 = Home;
+ 370         var9 = Destination;
+ 371        run;
+ 
+ NOTE: There were 1309 observations read from the data set WORK.TITANIC_FULL_V1_SRT.
+ NOTE: The data set SOROKA.L16_SOROKA has 1309 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              3848.84k
+       OS Memory           42928.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6575  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     528
+       Page Swaps                        0
+       Voluntary Context Switches        85
+       Involuntary Context Switches      11
+       Block Input Operations            0
+       Block Output Operations           4872
+       
+ 
+ 372        /* end final table
+ 372      ! *******************************************************************************************************/
+ 373        
+ 374        /* start creating template
+ 374      ! *******************************************************************************************************/
+ 375        proc template;
+ 376        define style intern;
+ 377        parent=styles.rtf;
+ 378        
+ 379        style Table from output /
+ 380        background=_undef_
+ 381        Rules=groups
+ 382        Frame=hsides
+ 383        textalign=center
+ 384        font=("Courier New", 9pt)
+ 385        cellpadding = 0pt
+ 386        cellspacing = 0pt
+ 387        borderwidth = 0.25pt
+ 388        width = 100%
+ 389        asis = on;
+ 390        style fonts from fonts /
+ 391        'docFont' = ("Courier New", 9pt);
+ 392        style rowheader /
+ 393        background=white
+ 394        font=("Courier New", 9pt)
+ 395        asis=on;
+ 396        
+ 397        style header /
+ 398        font=("Courier New", 9pt)
+ 399        textalign=center
+ 400        verticalalign=center
+ 401        asis=on
+ 402        background=white;
+ 403        
+ 404        style systemtitle /
+ 405        font=("Courier New", 9pt);
+ 406        style systemfooter /
+ 407        font=("Courier New", 9pt)
+ 408        asis=on;
+ 409        style data from data /
+ 410        font=("Courier New", 9pt)
+ 411        verticalalign = m
+ 412        asis=on
+ 413        marginbottom = 0.8pt
+ 414        margintop = 1.25pt;
+ 415        replace Body from Document /
+ 416         marginleft=1in
+ 417             marginright=0.6in;
+ 418        end;
+ NOTE: Overwriting existing template/link: Intern
+ NOTE: STYLE 'Intern' has been saved to: WORK.TEMPLAT
+ 419        run;
+ NOTE: PROCEDURE TEMPLATE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              376.09k
+       OS Memory           39848.00k
+       Timestamp           18.08.2025 12:31:06 пп
+       Step Count                        6576  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     14
+       Page Swaps                        0
+       Voluntary Context Switches        6
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           72
+       
+ 
+ 420        /* end creating template
+ 420      ! *******************************************************************************************************/
+ 421        
+ 422        /* start creating report
+ 422      ! *******************************************************************************************************/
+ 423        ods escapechar='^';
+ 424        ods rtf file="&pth/l16_Soroka.rtf"
+ 425        style=intern startpage=never;
+ NOTE: Writing RTF Body file: /home/u64271711/InternShip/Soroka_cw6/l16_Soroka.rtf
+ 426        options nodate nonumber
+ 427        orientation=landscape papersize=(11in 8.5in)
+ 428        topmargin=1.25in bottommargin=0.8in
+ 429        leftmargin=1in rightmargin=0.6in;
+ 430        %let date = %sysfunc(date(),  DATE9.);
+ 431        %let time = %sysfunc(time(), time5.);
+ 432        title justify=right 'Page ^{thispage} of ^{lastpage}';
+ 433        title2 justify=right "&date &time";
+ 434        title3 justify=center 'Listing 16. Passenger Demographics,'
+ 435        'Travel Information, and Survival';
+ 436        title4 'Status from the Titanic Dataset';
+ 437        options nobyline;
+ 438        title5 justify=left 'Class: #byval(Class)';
+ 439        footnote justify=left
+ 439      ! "________________________________________________________________________________________________________________________
+ 439      ! _____";
+ 440        footnote2 justify=left "&pth/Soroka_cw6.sas ran on &date at &time Programmer: Soroka Dmytro";
+ 441        /* start proc report
+ 441      ! *******************************************************************************************************/
+ 442        proc report data=Soroka.l16_Soroka style(header)=[vjust=bottom] style(column)=[height=40];
+ 443        by class;
+ 444        column var1-var9;
+ 445        define var1 / display 'PassengerID ^n^{unicode 002F} Class' left style(column)=[cellwidth=50] style(header)=[just=left];
+ 446        define var2 / display 'Age ^n(years) ' center style(column)=[cellwidth=30];
+ 447        define var3 / display 'Sex' center style(column)=[cellwidth=15];
+ 448        define var4 / display 'Boarding ^ndate (Days ^nat Sea)' left style(column)=[cellwidth=50] style(header)=[just=left];
+ 449        define var5 / display 'Did the Passenger ^nSurvive?' center style(column)=[cellwidth=80];
+ 450        define var6 / display 'Passenger ^nTitle' center style(column)=[cellwidth=70];
+ 451        define var7 / display 'AgeGroup' center style(column)=[cellwidth=70];
+ 452        define var8 / display 'Home' left style(column)=[cellwidth=75];
+ 453        define var9 / display 'Destination' left style(column)=[cellwidth=75];
+ 454        run;
+ 
+ NOTE: There were 1309 observations read from the data set SOROKA.L16_SOROKA.
+ NOTE: PROCEDURE REPORT used (Total process time):
+       real time           1.85 seconds
+       user cpu time       1.82 seconds
+       system cpu time     0.02 seconds
+       memory              16011.12k
+       OS Memory           55244.00k
+       Timestamp           18.08.2025 12:31:08 пп
+       Step Count                        6577  Switch Count  3
+       Page Faults                       0
+       Page Reclaims                     4061
+       Page Swaps                        0
+       Voluntary Context Switches        41
+       Involuntary Context Switches      6
+       Block Input Operations            0
+       Block Output Operations           1808
+       
+ 
+ 455        /* end proc report
+ 455      ! *******************************************************************************************************/
+ 456        ods rtf close;
+ 457        /* end creating report
+ 457      ! *******************************************************************************************************/
+ 458        
+ 459        ods proctitle;
+ 460        
+ 461        
+ 462        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 472        

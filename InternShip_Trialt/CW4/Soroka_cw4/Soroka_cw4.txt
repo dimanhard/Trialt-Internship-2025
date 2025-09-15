@@ -1,0 +1,371 @@
+/* pre program */
+ods noproctitle;
+
+/* formats */
+proc format;
+	value survform
+	0 = "Died"
+	1 = "Survived";
+	value surec
+	0 = "Survived=0"
+	1 = "Survived=1";
+run;
+
+/* macro programs */
+%macro totobs(mydata);
+	%let mydataID=%sysfunc(OPEN(&mydata.,IN));
+	%let NOBS=%sysfunc(ATTRN(&mydataID,NOBS));
+	%let RC=%sysfunc(CLOSE(&mydataID));
+	&NOBS
+%mend;
+
+/* Step 10 */
+%macro freqtab(tab, var, tit1, tit2);
+/* table 1, 2, 3 */
+title3 "&tit1";
+proc freq data=&tab ;
+	tables &var / out=Soroka.freq_&var;
+run;
+/* histogram 1, 2, 3 */
+title "&tit2";
+ods select FreqPlot;
+proc freq data=&tab;
+	tables &var / plots=freqplot(scale=percent);
+run;
+ods select all;
+title;
+%mend freqtab;
+
+/* Step 10 */
+%macro tw_freqtab(tab, var1, var2, tit1, tit2);
+/* table 4, 5 */
+title2 "&tit1";
+proc freq data=&tab ;
+	tables &var1*&var2 / out=Soroka.freq_&var1._&var2;
+run;
+/* histogram 4, 5 */
+title "&tit2";
+ods select FreqPlot;
+proc freq data=&tab;
+	tables &var1*&var2 / plots=freqplot(scale=percent);
+run;
+ods select all;
+title;
+%mend tw_freqtab;
+
+/* Step 11 */
+%macro xis(tab, var1, var2, tit1, tit2, tit3);
+proc sort data=&tab out=srt&tab;
+by &var2 &var1;
+run;
+/* table 7 */
+title2 "&tit1";
+data pre1&var1&var2;
+	set srt&tab(keep=&var1 &var2);
+	by &var2 &var1;
+	&var1 = propcase(&var1);
+	retain count 0;
+	count + 1;
+	if last.&var1 then do;
+		output;
+		count = 0;
+	end;
+run;
+proc transpose data=pre1&var1&var2 out=out1pre1&var1&var2(drop=_name_);
+	by &var2;
+	id &var1;
+	var count;
+run;
+data out1pre2&var1&var2;
+	set out1pre1&var1&var2;
+	Total = sum(of _NUMERIC_);
+run;
+proc transpose data=out1pre2&var1&var2 out=out1pre3&var1&var2;
+	id &var2;
+run;
+data out1pre4&var1&var2;
+	set out1pre3&var1&var2;
+	total = sum(of _NUMERIC_);
+	_name_ = propcase(_name_);
+run;
+proc print data=out1pre4&var1&var2 noobs label STYLE(data)= {textalign=center} STYLE(head)= {textalign=center};
+	label  _name_ =ㅤ
+	total = Total;
+run;
+/* table 8 */
+title "&tit2";
+data out2pre1&var1&var2(drop=totobs fv sv i count);
+	set pre1&var1&var2 pre1&var1&var2;
+	&var1 = propcase(&var1);
+	retain totobs %totobs(pre1&var1&var2);
+	array v1arr{%totobs(pre1&var1&var2)} $20 _TEMPORARY_ ;
+	array v2arr{%totobs(pre1&var1&var2)} $20 _TEMPORARY_ ;
+	array cntarr{%totobs(pre1&var1&var2)} _TEMPORARY_ ;
+	if _n_ > totobs then do;
+		fv = 0;
+		sv = 0;
+		do i = 1 to totobs;
+			 if v1arr[i] = &var1 then fv + cntarr[i];
+		end;
+		do i = 1 to totobs;
+			 if v2arr[i] = &var2 then sv + cntarr[i];
+		end;
+		chances = fv * sv / sum(of cntarr[*]);
+	end;
+	else do;
+		v1arr[_n_]=&var1;
+		v2arr[_n_]=&var2;
+		cntarr[_n_]=count;
+	end;
+run;
+data out2pre2&var1&var2;
+	set out2pre1&var1&var2;
+	format chances 15.7;
+	where chances is not missing;
+run;
+proc sort data=out2pre2&var1&var2 out=out2pre3&var1&var2;
+	by &var1 &var2;
+run;
+proc transpose data=out2pre3&var1&var2 out=out2pre4&var1&var2(drop=_name_);
+	by &var1;
+	id &var2;
+	var chances;
+run;
+proc print data=out2pre4&var1&var2 noobs label STYLE(data)= {textalign=center} STYLE(head)= {textalign=center};
+	label &var1=ㅤ;
+run;
+/* table 9 */
+title "&tit3";
+data out3pre1&var1&var2;
+	merge pre1&var1&var2 out2pre2&var1&var2;
+	by &var2 &var1;
+	retain xirt 0 clk 0;
+	if clk then do;
+		xi = round((count - chances)**2 / chances, 0.00001);
+		if last.&var1 then clk = 0;
+	end;
+	else do;
+		xi = round((count - chances)**2 / chances, 0.0001);
+		if last.&var1 then clk = 1;
+	end;
+	xirt + xi;
+	output;
+	drop count chances xirt clk;
+run;
+proc sort data=out3pre1&var1&var2 out=out3pre2&var1&var2;
+	by &var1 &var2;
+run;
+proc transpose data=out3pre2&var1&var2 out=out3pre3&var1&var2(drop=_name_);
+	by &var1;
+	id &var2;
+	var xi;
+run;
+data out3pre4&var1&var2;
+	set out3pre3&var1&var2;
+	total = sum(of _NUMERIC_);
+run;
+proc transpose data=out3pre4&var1&var2 out=out3pre5&var1&var2;
+	id &var1;
+run;
+data out3pre6&var1&var2;
+	set out3pre5&var1&var2;
+	total = round(sum(of _NUMERIC_), 0.0001);
+run;
+data out3pre7&var1&var2;
+	set out3pre6&var1&var2;
+	
+	if _n_ ^= %totobs(out3pre6&var1&var2) then total= .;
+run;
+proc transpose data=out3pre7&var1&var2 out=out3pre8&var1&var2;
+	id _name_;
+run;
+data out3pre9&var1&var2;
+	set out3pre8&var1&var2;
+	if _n_ ^= %totobs(out3pre8&var1&var2) then total= .;
+	_name_ = propcase(_name_);
+run;
+options missing="";
+proc print data=out3pre9&var1&var2 label noobs STYLE(data)= {textalign=center} STYLE(head)= {textalign=center};
+	format _numeric_ best12.;
+	label _name_=ㅤ
+	total=Total;
+run;
+options missing=".";
+title;
+%mend xis;
+
+/* Step 11 */
+%macro cntr(tab, var1, var2);
+/* table 6 */
+proc sort data=&tab out=srtt6&tab;
+by &var2 &var1;
+run;
+data tab6v1&var1&var2;
+	set srtt6&tab(keep=&var1 &var2);
+	by &var2 &var1;
+	&var1 = propcase(&var1);
+	retain count 0;
+	count + 1;
+	if last.&var1 then do;
+		output;
+		count = 0;
+	end;
+run;
+proc transpose data=tab6v1&var1&var2 out=tab6v2&var1&var2(drop=_name_);
+	by &var2;
+	id &var1;
+	var count;
+run;
+data tab6v3&var1&var2;
+	set tab6v2&var1&var2;
+	Total = sum(of _NUMERIC_);
+run;
+proc transpose data=tab6v3&var1&var2 out=tab6v4&var1&var2;
+	id &var2;
+run;
+data tab6v5&var1&var2;
+	set tab6v4&var1&var2;
+	total = sum(of _NUMERIC_);
+	_name_ = propcase(_name_);
+run;
+%mend cntr;
+
+/* create library */
+/* Step 2 */
+libname Soroka "/home/u64271711/InternShip/Soroka";
+
+/* import table */
+proc import datafile="/home/u64271711/InternShip/Soroka/titanic.csv"
+			dbms=csv replace out=titanic;
+	guessingrows=max;
+run;
+
+/* creating formats */
+data titanic_fmt;
+	set titanic;
+	format Survived survform.;
+run;
+
+/* main */
+data titanic_fmt_sd;
+	set titanic;	
+	Survived_ch = put(Survived, surec.);
+	format survived surec.;
+run;
+data titanic_fmt_th;
+	set titanic;	
+	Survived_ch = put(Survived, survform.);
+	format survived survform.;
+run;
+/* creating report */
+options nodate nonumber;
+/* Step 8 */
+ods rtf file="/home/u64271711/InternShip/Soroka/report_lastname.rtf" bodytitle startpage=no ;
+
+/* Step 3, 10 */
+title1 justify=right "Soroka Dmytro";
+title2 height=10 "research into patterns among Titanic passengers";
+/* table 1 and histogram 1 */
+%freqtab(titanic_fmt, Survived,
+	Table 1 – Frequency table for Survived,
+	Fig. 1 – Histogram of the distribution of percentage values of the variable Survived);
+/* table 2 and histogram 2 */
+%freqtab(titanic_fmt, Gender,
+	Table 2 – Frequency table for Gender,
+	Fig. 2 – Histogram of the distribution of percentage values of the Gender variable);
+/* table 3 and histogram 3 */
+%freqtab(titanic_fmt, Class,
+	Table 3 – Frequency table for Class,
+	Fig. 3 – Histogram of the distribution of percentage values of the Class variable);
+
+/* Step 4, 10 */
+title1 height=1 justify=left "(Looking at the results of the program,"
+	" we can conclude that there are no unusual values in the data." 
+	"Let's build two-factor frequency tables. We can introduce an a " 
+	"priori idea about the existence of a connection between the " 
+	"response and the regressors. We will consider Survived as the " 
+	"response, and Gender and Class as the regressors).";
+/* table 4 and histogram 4 */
+%tw_freqtab(titanic_fmt, Gender, Survived, 
+	Table 4 – Two-factor frequency table for Gender and Survived,
+	Fig. 4 – Histogram of the distribution of percentages of all 
+	combinations of values of the variables Gender and Survived);
+/* table 5 and histogram 5 */
+%tw_freqtab(titanic_fmt, Class, Survived, 
+	Table 4 – Two-factor frequency table for Class and Survived,
+	Fig. 4 – Histogram of the distribution of percentages of all 
+	combinations of values of the variables Class and Survived);
+	
+/* Step 6, 11 */
+title height=1 justify=left "(As can be seen from the histograms"
+	" of the percentage distribution of all combinations "
+	"of the values of the variables Class and Survived, there"
+	"is also a relationship between the variables. Passengers "
+	"in higher classes have a much higher chance of surviving)";
+title2 "Table 6 – Distribution of passengers depending on gender (Gender) and response (Survived)";
+/* table 6 */
+%cntr(titanic_fmt_th, Gender, Survived_ch);
+data tab6v6GenderSurvived_ch;
+	set tab6v5GenderSurvived_ch;
+	if _n_ ^= %totobs(tab6v5GenderSurvived_ch) then do;
+		died = round(died / total * 100, 0.01);
+		survived = round(survived / total * 100, 0.01);
+	end;
+run;
+data tab6v7GenderSurvived_ch(drop= survived died total);
+	set tab6v6GenderSurvived_ch;
+	if _n_ ^= %totobs(tab6v6GenderSurvived_ch) then do;
+		died_ch = put(died, 5.2) || "%";
+		survived_ch = put(survived, 5.2) || "%";
+	end;
+	else do;
+		died_ch = cats("N=", put(died, 4.0));
+		survived_ch = cats("N=", put(survived, 4.0));
+	end;
+	total_ch = cats("N=", put(total, 4.0));
+run;
+proc report data=tab6v7GenderSurvived_ch;
+	column ("Gender" _name_) ("Response" died_ch survived_ch total_ch);
+    
+    define _name_ / display "Row Pct";
+    define died_ch / display "Died" style(column)={just=center};
+    define survived_ch / display "Survived" style(column)={just=center};
+    define total_ch / display "Total" style(column)={just=center};
+run;
+
+/* Step 7, 11 */
+title height=1 justify=left "(Based on the values in the table"
+	" above, we can conclude that there is a relationship between"
+	"gender and survival, since the row probabilities are different"
+	"in each column. To check for a relationship, we evaluate the"
+	"difference between the probability of survival for women (72.25%)"
+	" and survival for men (19.10%), as can be seen, the difference"
+	"is much greater than chance)";
+/* table 7, 8, 9 */
+%xis(titanic_fmt_sd, Gender, Survived_ch,
+	Table 7 - Frequency matrix empirical values (for the combination of variables Gender and Survived),
+	Table 8 - Expected Frequency Matrix (for the combination of Gender and Survived variables),
+	Table 9 - Matrix of individual values of the chi-square statistic (for the combination of the variables Gender and Survived));
+	
+/* Step 9 */
+/*proc freq data=titanic_fmt_sd;
+	tables Gender*Survived_ch / chisq;
+	output out=cmprGS  pchi lrchi;
+run;
+data cmprGS_rnd;
+	set cmprGS;
+	_PCHI_=round(_PCHI_, 0.0001);
+run;
+proc compare base=out3pre9GenderSurvived_ch compare=cmprGS_rnd;
+	where total is not missing;
+	var total;
+	with _PCHI_;
+run;*/
+
+
+*%xis(titanic_fmt_sd, Gender, class ,1,2,3);
+
+ods rtf close;
+
+/* after program */
+ods proctitle;

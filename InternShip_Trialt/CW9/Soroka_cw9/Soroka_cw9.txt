@@ -1,0 +1,190 @@
+ods noproctitle;
+
+/* start macro variables **************************************************************************************************************/
+/* Step 1.2 */
+%let id = u64271711;
+%let sdn = Soroka;
+/* end macro variables **************************************************************************************************************/
+
+/* start macro programs **************************************************************************************************************/
+/* Step 4.1 */
+%macro single_var_mi(inds, var, nimps=1);
+/* Step 4.2 */
+proc means data=&inds. noprint;
+    var &var.;
+    output out=&inds._fd_sts mean=mean std=stddev;
+run;
+data _null_;
+    set &inds._fd_sts;
+    call symputx("mean_fd_sts", mean);
+    call symputx("stddev_fd_sts", stddev);
+run;
+%let imputation_num = 1;
+data &sdn..imput_var;
+set _null_;
+run;
+%do %while (&nimps >= &imputation_num);
+/* Step 4.3 */
+data time_imput_var;
+	set &inds.;
+	imputation = "&imputation_num.";
+	call streaminit(&imputation_num.);
+	if &var. = . then do;
+		do while (&var. <= 0); 
+			&var. = rand('NORMAL', &mean_fd_sts, &stddev_fd_sts);
+		end;
+	end;
+run;
+/* Step 4.4 */
+data &sdn..imput_var;
+	length imputation $ 200 &var. 8;
+	set &sdn..imput_var time_imput_var;
+run;
+%let imputation_num = %sysevalf(&imputation_num + 1);
+%end;
+%mend single_var_mi;
+/* end macro programs **************************************************************************************************************/
+
+/* start creating libref **************************************************************************************************************/
+/* Step 1.3 */
+libname &sdn "/home/&id./InternShip/&sdn._cw9";
+/* end creating libref **************************************************************************************************************/
+
+/* start Import *******************************************************************************************************/
+/* Step 2.1 */
+option validvarname=v7;
+proc import datafile="/home/&id./InternShip/&sdn._cw9/train.csv"
+	dbms=csv replace out=train;
+		guessingrows=max;
+run;
+/* end Import *******************************************************************************************************/
+
+/* start counting *******************************************************************************************************/
+/* Step 2.2 */
+proc sql noprint;
+	select count(*) into :total
+	from train;
+	select sum(missing(age)) into :missing
+	from train;
+quit;
+%let percent = %sysevalf((&missing/&total)*100);
+/* Step 2.3 */
+proc means data=train noprint;
+    var Age;
+    output out=stats mean=mean std=stddev;
+run;
+data _null_;
+    set stats;
+    call symputx("mean", mean);
+    call symputx("stddev", stddev);
+run;
+/* end counting *******************************************************************************************************/
+
+/* start histogram *******************************************************************************************************/
+/* Step 2.4 */
+ods select Histogram;
+proc univariate data=train;
+	var age;
+	histogram age / normal;
+run;
+ods select all;
+/* end histogram *******************************************************************************************************/
+
+/* start first imputation *******************************************************************************************************/
+/* Step 3.1 */
+data train_f;
+	set train;
+	imputation = '1';
+	call streaminit(2025);
+	if age = . then do;
+		do while (age <= 0); 
+			age = rand('NORMAL', &mean, &stddev);
+		end;
+	end;
+run;
+/* Step 3.2 */
+ods select Histogram;
+proc univariate data=train_f;
+	var age;
+	histogram age / normal;
+run;
+ods select all;
+/* end first imputation *******************************************************************************************************/
+
+/* start testing the null hypothesis H_0 *******************************************************************************************************/
+/* Step 5.1 */
+%single_var_mi(train, age, nimps=5);
+/* Step 5.2 */
+ods output ttests=tt_raw;
+proc ttest data=&sdn..imput_var h0=30;
+    by imputation;
+    var Age;
+run;
+ods output close;
+data &sdn..ttest_result(drop=df probt tvalue);
+	length imputation $ 200 variable $ 200
+	t_statistic $ 200 p $ 200;
+	set tt_raw;
+	imputation = imputation;
+	variable = propcase(variable);
+	p = left(put(round(probt, 0.001), best12.));
+	t_statistic = left(put(round(tvalue, 0.001), best12.));
+run;
+/* Step 5.3 */
+%put NOTE: missing=&missing;
+%put NOTE: total=&total;
+%put NOTE: percent=&percent;
+%put NOTE: mean=&mean;
+%put NOTE: stddev=&stddev;
+/* end testing the null hypothesis H_0 *******************************************************************************************************/
+
+/* start export *******************************************************************************************************/
+/* Step 6 */
+proc export data=&sdn..imput_var
+    outfile="/home/&id./InternShip/&sdn._cw9/imput_var.csv"
+    dbms=csv replace;
+    putnames=yes;
+run;
+proc export data=&sdn..ttest_result
+    outfile="/home/&id./InternShip/&sdn._cw9/ttest_result.csv"
+    dbms=csv replace;
+    putnames=yes;
+run;
+/* end export *******************************************************************************************************/
+
+/* start multiple imputation with PROC MI *******************************************************************************************************/
+/* Step 7.1 */
+proc mi data=train nimpute=5 seed=2025 out=mi_out;
+    var Age Fare;
+    fcs reg;
+run;
+ods output ttests=tt_mi_raw;
+proc ttest data=mi_out h0=30;
+    by _Imputation_;
+    var Age;
+run;
+ods output close;
+proc means data=mi_out nway noprint;
+    class _Imputation_;
+    var Age;
+    output out=mean_imp mean=mean_age std=std_age n=n_age;
+run;
+data mean_imp2;
+    set mean_imp;
+    where _TYPE_=1;
+    stderr_age = std_age / sqrt(n_age);
+    keep _Imputation_ mean_age stderr_age;
+run;
+/* Step 7.2 */
+ods output ParameterEstimates=mi_estimates;
+proc mianalyze data=mean_imp2;
+    modeleffects mean_age;
+    stderr stderr_age;
+run;
+ods output close;
+/*
+there are no statistically significant deviations from the hypothetical 30-year average
+*/
+/* end multiple imputation with PROC MI *******************************************************************************************************/
+
+ods proctitle;
